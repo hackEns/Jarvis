@@ -6,3 +6,4 @@
 * Bug avec les scripts dans leds_wtf -> boucle infinie
 * flake8
 * autoreconnect
+* jarvis espeak => faille dans l'appel à espeak
