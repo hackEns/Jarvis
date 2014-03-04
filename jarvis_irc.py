@@ -87,7 +87,7 @@ while True:
             prefix = t[1].strip().upper().startswith
             if prefix('AIDE'):
                 ans("Jarvis au rapport ! Usage :")
-                say(" jarvis: control center")
+                say(" jarvis: info")
                 say(" jarvis: camera ANGLE, ANGLE entre 0 et 180")
                 say(" jarvis: camera ALIAS")
                 say(" jarvis: alias ALIAS, ALIAS = camera, more to come")
@@ -99,8 +99,8 @@ while True:
                     "facultatif (défaut = 5)")
                 say(" jarvis: citation")
                 say(" jarvis: jeu")
-            elif prefix('CONTROL CENTER'):
-                ans("Control center disponible ici : " +
+            elif prefix('INFO'):
+                ans("Quartier général en direct ici : " +
                     "http://ulminfo.fr:8080/hackave.ogg")
             elif prefix('CAMERA'):
                 angle = (t[1].strip())[6:].strip()
