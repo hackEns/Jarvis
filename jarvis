@@ -1,0 +1,118 @@
+#!/usr/bin/env python2
+# -*- coding: utf8 -*-
+
+import time
+import os
+import sys
+import colorsys
+import serial
+import subprocess
+
+
+cam_path = "/dev/ttyACM1"
+atx_path = cam_path
+lum_path = "/dev/ttyUSB0"
+def initSerial(path):
+	os.system("stty -hup -F " + path)
+	try:
+		return serial.Serial(path, 115200)
+	except:
+		sys.exit("Erreur à l'ouverture du port série.")
+
+def send(ser, mode, msg):
+	ser.readline()
+	ser.write(chr(mode))
+	ser.flush()
+	print(ser.readline().strip())
+	ser.write(msg)
+	ser.flush()
+	print(ser.readline().strip())
+
+
+def camera(angle):
+	if angle < 0 or angle > 180:
+		print("L'angle doit être entre 0 et 180")
+		raise SystemExit
+
+	towrite = chr(127+int(127*float(angle)/180))
+	ser = initSerial(cam_path)
+	send(ser, 1, towrite)
+
+def lumiere(r, v, b):
+	msg = [0x80]
+	for c in [r, v, b]:
+		if c < 0 or c > 255:
+			print "La couleur doit être entre 0 et 255"
+			raise SystemExit
+		else:
+			msg.append(c/2)
+	
+	ser = initSerial(lum_path)
+	for j in msg:
+		ser.write(chr(j))
+
+
+
+def atx(etat):
+	ser = initSerial(atx_path)
+	send(ser, 2, chr(etat))
+
+
+
+
+
+
+if len(sys.argv) < 2:
+	print("Usage: %s action ..." % (sys.argv[0], ))
+	raise SystemExit
+
+
+
+mode = "camera"
+if sys.argv[1] == mode:
+	if len(sys.argv) < 3:
+		print("Usage: %s %s angle" % (sys.argv[0], mode))
+		raise SystemExit
+	else:
+		camera(int(sys.argv[2]))
+	exit(0)
+
+
+mode = "lumiere"
+if sys.argv[1] == mode:
+	if len(sys.argv) < 5:
+		print("Usage: %s %s rouge vert bleu" % (sys.argv[0], mode))
+		raise SystemExit
+	else:
+		lumiere(int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
+
+	exit(0)
+
+mode = "dis"
+if sys.argv[1] == mode:
+	if len(sys.argv) != 3:
+		print("Usage %s %s phrase" % (sys.argv[0], mode))
+		raise SystemExit
+	else:
+		os.system("espeak -v french+m5 -p 5 -s 50 -a 200 "+sys.argv[2])
+		#espeak.set_parameter(espeak.Parameter.Rate, 50, False)
+		#espeak.set_parameter(espeak.Parameter.Volume, 200, False)
+		#espeak.set_parameter(espeak.Parameter.Pitch, 5, False)
+		#espeak.set_voice("fr+m5")
+		#espeak.synth(sys.argv[2])
+	exit(0)
+
+
+mode = "atx"
+if sys.argv[1] == mode:
+	if len(sys.argv) < 3 or not sys.argv[2].upper() in ['ON', 'OFF']:
+		print("Usage: %s %s ON|OFF" % (sys.argv[0], mode))
+		raise SystemExit
+	else:
+		atx(1 if sys.argv[2] == 'ON' else 0)
+	exit(0)
+
+
+
+print("%s: Instruction inconnue : %s" % (sys.argv[0], sys.argv[1]))
+raise SystemExit
