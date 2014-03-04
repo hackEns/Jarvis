@@ -85,7 +85,7 @@ while True:
         ans = ans_nick(nick)
         if len(t) > 1:
             prefix = t[1].strip().upper().startswith
-            if prefix('HELP'):
+            if prefix('AIDE'):
                 ans("Jarvis au rapport ! Usage :")
                 say(" jarvis: control center")
                 say(" jarvis: camera ANGLE, ANGLE entre 0 et 180")
