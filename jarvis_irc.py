@@ -88,6 +88,8 @@ while True:
             say(" jarvis: led wtf/jarvis/strobo")
             say(" jarvis: dis \"qqchose\"")
             say(" jarvis: atx on/off")
+            say(" jarvis: historique N, N=nombre de lignes, " +
+                "facultatif (défaut = 5)")
             say(" jarvis: citation")
             say(" jarvis: jeu")
         elif prefix('CONTROL CENTER'):
@@ -206,6 +208,23 @@ while True:
                     ans("L'ATX est devenue incontrôlable !")
             else:
                 ans("Usage : jarvis: atx on/off")
+        elif prefix("HISTORIQUE"):
+            N = 5
+            if not t[1].strip().upper().endswith("HISTORIQUE"):
+                try:
+                    N = int((t[1].strip())[10:].strip())
+                except ValueError:
+                    ans("Usage : jarvis: historique N, N=nombre de lignes, " +
+                        "facultatif (défaut = 5)")
+                    continue
+            add_history("historique " + str(N))
+
+            ans("Affichage des " + str(N) + " dernières lignes d'historique.")
+            if len(history) < N+1:
+                ans("Il n'y a que " + str(len(history) - 1) + " lignes dans " +
+                    "l'historique. Je les affiche maintenant :")
+            for line in list(history)[-N-1:-1]:
+                say(line)
         elif prefix("CITATION"):
             try:
                 with open("citations", 'r') as fh:

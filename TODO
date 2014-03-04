@@ -1,7 +1,6 @@
 # TODO             
 * stream on / off
 * logs => Elie
-* historique => interface pour y accéder
 * crontask pour lancer stream + jarvis bot au démarrage
 * Bug avec les scripts dans leds_wtf -> boucle infinie
 * autoreconnect
