@@ -18,9 +18,11 @@ def add_history(string):
 server = "clipper.ens.fr"
 channel = "#hackens"
 botnick = "jarvis"
-debug = False
+password = "***"
+debug = True
 
 joined = False
+identified = False
 
 irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print("Connecting to : "+server)
@@ -41,7 +43,9 @@ history = deque([])
 while True:
     text = irc.recv(2040).decode()
 
-    if text.find('MODE '+ botnick) != -1 and not joined:
+    if text.find('MODE '+ botnick) != -1 and not joined and not identified:
+        print("Identifying with NickServ")
+        irc.send(("PRIVMSG NICKSERV :IDENTIFY %s\r\n" % (password)).encode())
         print("Joining "+ channel)
         irc.send(("JOIN "+ channel +"\n").encode())
 
@@ -49,8 +53,14 @@ while True:
         joined = True
         print(channel+" joined")
 
+    if text.find(':NickServ') != -1 and text.find("NOTICE "+botnick+" :You are now identified") != -1:
+        identified = True
+        print("Successfully identified")
+
     if text.find('PING') != -1:
         irc.send(('PONG ' + text.split()[1] + '\r\n').encode())
+        if debug:
+            print("PING received, PONG sent")
 
     if text.find('PRIVMSG '+botnick) != -1:
         continue
@@ -195,4 +205,4 @@ while True:
                 ans("Je n'ai pas compris…")
 
     if(debug):
-        print(text)
+        print("RECEIVED (DEBUG): "+text)
