@@ -84,17 +84,18 @@ if sys.argv[1] == mode:
     exit(0)
 
 mode = "dis"
+import subprocess
 if sys.argv[1] == mode:
     if len(sys.argv) != 3:
         print("Usage %s %s phrase" % (sys.argv[0], mode))
         raise SystemExit
     else:
-        os.system("espeak -v french+m5 -p 5 -s 50 -a 200 "+sys.argv[2])
-        #espeak.set_parameter(espeak.Parameter.Rate, 50, False)
-        #espeak.set_parameter(espeak.Parameter.Volume, 200, False)
-        #espeak.set_parameter(espeak.Parameter.Pitch, 5, False)
-        #espeak.set_voice("fr+m5")
-        #espeak.synth(sys.argv[2])
+        subprocess.call(["espeak",
+                         "-vfrench+m5",
+                         "-p 5",
+                         "-s 50",
+                         "-a 200",
+                         sys.argv[2]])
     exit(0)
 
 
