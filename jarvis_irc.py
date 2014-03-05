@@ -4,6 +4,7 @@ import socket
 import random
 import subprocess
 import os
+from config import *
 from collections import deque
 
 
@@ -86,7 +87,7 @@ def main():
                 say(" jarvis: camera ALIAS")
                 say(" jarvis: alias ALIAS, ALIAS = camera, more to come")
                 say(" jarvis: lumiere R V B, R, V et B entre 0 et 255")
-                say(" jarvis: led wtf/jarvis/strobo")
+                say(" jarvis: led wtf/jarvis/strobo/…")
                 say(" jarvis: dis \"qqchose\"")
                 say(" jarvis: atx on/off")
                 say(" jarvis: historique N, N=nombre de lignes, " +
@@ -170,7 +171,10 @@ def main():
                         "R, V et B entre 0 et 255")
             elif prefix('LED'):
                 t = (t[1].strip())[3:].strip().upper()
-                if t in ["WTF", "JARVIS", "STROBO"]:
+                scripts = [f.upper() for f in os.listdir('leds_wtf/') if
+                         os.path.isfile(os.path.join('leds_wtf', f))]
+
+                if t in scripts:
                     add_history("led "+t)
                     ret = subprocess.call([basepath +
                                           "/leds_wtf/led_"+t.lower()+".py"],
@@ -265,10 +269,6 @@ def main():
 
 
 irc = None
-server = "clipper.ens.fr"
-channel = "#hackens"
-botnick = "jarvis"
-password = "***"
 
 debug = True
 
