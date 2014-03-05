@@ -1,0 +1,5 @@
+config.py should contain the following items:
+server = "server"
+channel = "channel"
+botnick = "botnick"
+password = "pass"
