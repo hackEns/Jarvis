@@ -105,7 +105,7 @@ if sys.argv[1] == mode:
         print("Usage: %s %s ON|OFF" % (sys.argv[0], mode))
         raise SystemExit
     else:
-        atx(1 if sys.argv[2] == 'ON' else 0)
+        atx(1 if sys.argv[2].upper() == 'ON' else 0)
     exit(0)
 
 
