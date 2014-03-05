@@ -24,20 +24,14 @@ def ans_nick(nick):
     return lambda msg: say("%s%s" % (nick, msg))
 
 
-server = "clipper.ens.fr"
-channel = "#hackens"
-botnick = "jarvis"
-password = "***"
-debug = True
-devnull = subprocess.DEVNULL
+def main():
+    global irc, server, channel, botnick, password
+    global joined, identified, history
+    global debug
 
-joined = False
-identified = False
+    devnull = subprocess.DEVNULL
+    basepath = os.path.dirname(__file__)
 
-basepath = os.path.dirname(__file__)
-history = deque([])
-
-while True:
     irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Connecting to : "+server)
     irc.connect((server, 6667))
@@ -268,3 +262,25 @@ while True:
 
         if(debug):
             print("RECEIVED (DEBUG): "+text)
+
+
+irc = None
+server = "clipper.ens.fr"
+channel = "#hackens"
+botnick = "jarvis"
+password = "***"
+
+debug = True
+
+joined = False
+identified = False
+
+history = deque([])
+
+try:
+    while True:
+        main()
+except KeyboardInterrupt:
+    if irc is not None:
+        irc.close()
+    print("Jarvis est triste de devoir vous quitter…")

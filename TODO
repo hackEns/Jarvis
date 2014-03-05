@@ -3,4 +3,3 @@
 * logs => Elie
 * crontask pour lancer stream + jarvis bot au démarrage
 * Bug avec les scripts dans leds_wtf -> boucle infinie
-* Exit propre sur interrupt, en fermant le socket
