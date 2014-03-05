@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import socket
-import random
-import subprocess
 import os
-from config import *
+import random
+import socket
+import subprocess
+import time
 from collections import deque
+from config import *
 
 
 def add_history(string):
@@ -35,7 +36,7 @@ def main():
 
     irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Connecting to : "+server)
-    irc.settimeout(2)
+    irc.settimeout(250)
     irc.connect((server, 6667))
     irc.send(("USER " + botnick + " " + botnick + " " + botnick +
               " :Jarvis au rapport !\n").encode())
@@ -44,11 +45,11 @@ def main():
     while True:
         try:
             text = irc.recv(2040).decode()
-        except e:
+        except Exception as e:
             err = e.args[0]
             if err == 'timed out':
                 irc.close()
-                sleep(1)
+                time.sleep(1)
                 break
             else:
                 print(e)
