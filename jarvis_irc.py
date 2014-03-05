@@ -35,13 +35,24 @@ def main():
 
     irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Connecting to : "+server)
+    irc.settimeout(2)
     irc.connect((server, 6667))
     irc.send(("USER " + botnick + " " + botnick + " " + botnick +
               " :Jarvis au rapport !\n").encode())
     irc.send(("NICK " + botnick + "\n").encode())
 
     while True:
-        text = irc.recv(2040).decode()
+        try:
+            text = irc.recv(2040).decode()
+        except e:
+            err = e.args[0]
+            if err == 'timed out':
+                irc.close()
+                sleep(1)
+                break
+            else:
+                print(e)
+                sys.exit(1)
 
         if text.find("ERROR :Closing Link:") != -1:
             irc.close()
@@ -172,7 +183,7 @@ def main():
             elif prefix('LED'):
                 t = (t[1].strip())[3:].strip().upper()
                 scripts = [f.upper() for f in os.listdir('leds_wtf/') if
-                         os.path.isfile(os.path.join('leds_wtf', f))]
+                           os.path.isfile(os.path.join('leds_wtf', f))]
 
                 if t in scripts:
                     add_history("led "+t)
