@@ -29,7 +29,7 @@ def ans_nick(nick):
 def main():
     global irc, server, channel, botnick, password
     global joined, identified, history
-    global debug, basepath
+    global debug, basepath, oggfwd_path
     global stream_cave, oggfwd
     global stream_server, stream_port, stream_pass, stream_mount, stream_name
     global stream_desc, stream_url, stream_genre
@@ -285,7 +285,7 @@ def main():
                                                         "/stream_cave.py",
                                                         "/dev/video*"],
                                                        stdout=subprocess.PIPE)
-                        oggfwd = subprocess.Popen(["~/oggfwd/oggfwd",
+                        oggfwd = subprocess.Popen([oggfwd_path + "/oggfwd",
                                                    stream_server,
                                                    stream_port,
                                                    stream_pass,
@@ -321,7 +321,7 @@ irc = None
 stream_cave = subprocess.Popen([basepath + "/stream_cave.py",
                                 "/dev/video*"],
                                 stdout=subprocess.PIPE)
-oggfwd = subprocess.Popen(["~/oggfwd/oggfwd",
+oggfwd = subprocess.Popen([oggfwd_path + "/oggfwd",
                             stream_server,
                             stream_port,
                             stream_pass,

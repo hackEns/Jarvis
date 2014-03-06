@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
+# coding: utf-8
 
 import os
 import sys
@@ -9,6 +10,9 @@ import gst
 import gobject
 import glib
 glib.threads_init()
+
+if len(sys.argv) < 2:
+    sys.exit()
 
 pipeline_string = """v4l2src device=%s ! tee name=videoout ! queue leaky=1 ! \
         videorate ! video/x-raw-yuv,width=640,height=480,fps=24,\
