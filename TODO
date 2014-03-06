@@ -1,7 +1,6 @@
 # TODO             
-* stream on / off
 * logs => Elie
-* crontask pour lancer stream + jarvis bot au démarrage
+* crontask pour lancer jarvis au démarrage
 * Bug avec les scripts dans leds_wtf -> boucle infinie
-* only when addressed
+* Only when addressed
 * Error closing link bug

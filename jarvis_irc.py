@@ -302,8 +302,10 @@ def main():
                 elif t[3:].strip().upper().startswith("OFF"):
                     if stream_cave is not None:
                         stream_cave.terminate()
+                        stream_cave = None
                     if oggfwd is not None:
-                        stream_cave.terminate()
+                        oggfwd.terminate()
+                        oggfwd = None
                     ans("Retransmission interrompue.")
                 else:
                     ans("Usage : jarvis: stream on/off")
@@ -317,8 +319,20 @@ def main():
 
 
 irc = None
-stream_cave = None
-oggfwd = None
+stream_cave = subprocess.Popen([basepath + "/stream_cave.py",
+                                "/dev/video*"],
+                                stdout=subprocess.PIPE)
+oggfwd = subprocess.Popen(["~/oggfwd/oggfwd",
+                            stream_server,
+                            stream_port,
+                            stream_pass,
+                            stream_mount,
+                            "-n " + stream_name,
+                            "-d " + stream_desc,
+                            "-u " + stream_url,
+                            "-g " + stream_genre],
+                            stdin=stream_cave.stdout)
+print("Retransmission opérationnelle !")
 
 debug = True
 
