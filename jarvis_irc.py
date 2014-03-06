@@ -29,13 +29,12 @@ def ans_nick(nick):
 def main():
     global irc, server, channel, botnick, password
     global joined, identified, history
-    global debug
+    global debug, basepath
     global stream_cave, oggfwd
     global stream_server, stream_port, stream_pass, stream_mount, stream_name
     global stream_desc, stream_url, stream_genre
 
     devnull = subprocess.DEVNULL
-    basepath = os.path.dirname(__file__)
 
     irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Connecting to : "+server)
@@ -317,7 +316,7 @@ def main():
         if(debug):
             print("RECEIVED (DEBUG): "+text)
 
-
+basepath = os.path.dirname(__file__)
 irc = None
 stream_cave = subprocess.Popen([basepath + "/stream_cave.py",
                                 "/dev/video*"],
