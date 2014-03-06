@@ -51,6 +51,8 @@ def main():
         except Exception as e:
             err = e.args[0]
             if err == 'timed out':
+                joined = False
+                identified = False
                 irc.close()
                 time.sleep(1)
                 break
@@ -59,6 +61,8 @@ def main():
                 sys.exit(1)
 
         if text.find("ERROR :Closing Link:") != -1:
+            joined = False
+            identified = False
             irc.close()
             break
 
@@ -334,3 +338,4 @@ except:
     if oggfwd is not None:
         oggfwd.terminate()
     print("Jarvis est triste de devoir vous quitter…")
+    sys.exit(0)
