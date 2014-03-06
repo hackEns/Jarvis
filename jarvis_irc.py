@@ -30,6 +30,9 @@ def main():
     global irc, server, channel, botnick, password
     global joined, identified, history
     global debug
+    global stream_cave, oggfwd
+    global stream_server, stream_port, stream_pass, stream_mount, stream_name
+    global stream_desc, stream_url, stream_genre
 
     devnull = subprocess.DEVNULL
     basepath = os.path.dirname(__file__)
@@ -106,6 +109,7 @@ def main():
                     "facultatif (défaut = 5)")
                 say(" jarvis: citation")
                 say(" jarvis: jeu")
+                say(" jarvis: stream on/off")
             elif prefix('INFO'):
                 ans("Quartier général en direct ici : " +
                     "http://ulminfo.fr:8080/hackave.ogg")
@@ -128,7 +132,7 @@ def main():
                     try:
                         if angle == "":
                             raise ValueError
-                        with open(basepath+"/camera.alias", 'r') as fh:
+                        with open(basepath+"/data/camera.alias", 'r') as fh:
                             alias = fh.readlines()
                             for line in [i for i in alias if
                                          i.startswith(angle.upper)]:
@@ -251,7 +255,7 @@ def main():
                     say(line)
             elif prefix("CITATION"):
                 try:
-                    with open("citations", 'r') as fh:
+                    with open("data/citations", 'r') as fh:
                         citations = fh.readlines()
                         ans(""+citations[random.randrange(0,
                                                           len(citations))]+"")
@@ -270,7 +274,35 @@ def main():
                     "KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED " +
                     "TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A " +
                     "PARTICULAR PURPOSE AND NONINFRINGEMENT.")
-
+            elif prefix("STREAM"):
+                t = t[1].strip()
+                if t[3:].strip().upper().startswith("ON"):
+                    if stream_cave is not None or oggfwd is not None:
+                        stream_cave = subprocess.Popen([basepath +
+                                                        "/stream_cave.py",
+                                                        "/dev/video*"],
+                                                       stdout=subprocess.PIPE)
+                        oggfwd = subprocess.Popen(["~/oggfwd/oggfwd",
+                                                   stream_server,
+                                                   stream_port,
+                                                   stream_pass,
+                                                   stream_mount,
+                                                   "-n " + stream_name,
+                                                   "-d " + stream_desc,
+                                                   "-u " + stream_url,
+                                                   "-g " + stream_genre],
+                                                  stdin=stream_cave.stdout)
+                        ans("Retransmission opérationnelle !")
+                    else:
+                        ans("La retransmission est déjà opérationnelle.")
+                elif t[3:].strip().upper().startswith("OFF"):
+                    if stream_cave is not None:
+                        stream_cave.terminate()
+                    if oggfwd is not None:
+                        stream_cave.terminate()
+                    ans("Retransmission interrompue.")
+                else:
+                    ans("Usage : jarvis: stream on/off")
             elif prefix("LOG"):
                 ans("wip...")
             else:
@@ -281,6 +313,8 @@ def main():
 
 
 irc = None
+stream_cave = None
+oggfwd = None
 
 debug = True
 
@@ -292,7 +326,11 @@ history = deque([])
 try:
     while True:
         main()
-except KeyboardInterrupt:
+except:
     if irc is not None:
         irc.close()
+    if stream_cave is not None:
+        stream_cave.terminate()
+    if oggfwd is not None:
+        oggfwd.terminate()
     print("Jarvis est triste de devoir vous quitter…")

@@ -3,3 +3,5 @@
 * logs => Elie
 * crontask pour lancer stream + jarvis bot au démarrage
 * Bug avec les scripts dans leds_wtf -> boucle infinie
+* only when addressed
+* Error closing link bug
