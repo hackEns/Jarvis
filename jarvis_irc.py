@@ -97,7 +97,7 @@ def main():
             nick = ''
         ans = ans_nick(nick)
         if len(t) > 1:
-            prefix = t[1].strip().upper().startswith
+            prefix = (t[1].strip() + " ").upper().startswith
             if prefix('AIDE'):
                 ans("Jarvis au rapport ! Usage :")
                 say(" jarvis: info")
@@ -113,10 +113,10 @@ def main():
                 say(" jarvis: citation")
                 say(" jarvis: jeu")
                 say(" jarvis: stream on/off")
-            elif prefix('INFO'):
+            elif prefix('INFO '):
                 ans("Quartier général en direct ici : " +
                     "http://ulminfo.fr:8080/hackave.ogg")
-            elif prefix('CAMERA'):
+            elif prefix('CAMERA '):
                 angle = (t[1].strip())[6:].strip()
                 try:
                     angle_int = int(angle)
@@ -153,7 +153,7 @@ def main():
                         ans("Usage : jarvis: camera ANGLE, " +
                             "ANGLE entre 0 et 180")
                         ans("Usage : jarvis: camera ALIAS")
-            elif prefix('ALIAS'):
+            elif prefix('ALIAS '):
                 alias = (t[1].strip())[5:].strip()
                 try:
                     with open(basepath+"/"+alias+".alias", 'r') as fh:
@@ -162,7 +162,7 @@ def main():
                             say(line)
                 except:
                     ans("Je ne connais pas cet alias : "+alias+".")
-            elif prefix('LUMIERE'):
+            elif prefix('LUMIERE '):
                 t = (t[1].strip())[7:].split(" ")
                 try:
                     if len(t) <= 3:
@@ -188,7 +188,7 @@ def main():
                 except ValueError:
                     ans("Usage : jarvis: lumiere R V B, " +
                         "R, V et B entre 0 et 255")
-            elif prefix('LED'):
+            elif prefix('LED '):
                 t = (t[1].strip())[3:].strip().upper()
                 scripts = [f.upper() for f in os.listdir('leds_wtf/') if
                            os.path.isfile(os.path.join('leds_wtf', f))]
@@ -204,7 +204,7 @@ def main():
                         ans("Je ne peux pas passer la LED en mode "+t+".")
                 else:
                     ans("Usage: jarvis: led wtf/jarvis/strobo")
-            elif prefix('DIS'):
+            elif prefix('DIS '):
                 t = t[1].strip()
                 qqchose = t[3:].split("\"")
                 if len(qqchose) > 2:
@@ -218,7 +218,7 @@ def main():
                         ans("Je n'arrive plus à parler…")
                 else:
                     ans("Usage :  jarvis: dis \"qqchose\"")
-            elif prefix('ATX'):
+            elif prefix('ATX '):
                 t = t[1].strip()
                 if t[3:].strip().upper().startswith("ON"):
                     add_history("atx on")
@@ -238,7 +238,7 @@ def main():
                         ans("L'ATX est devenue incontrôlable !")
                 else:
                     ans("Usage : jarvis: atx on/off")
-            elif prefix("HISTORIQUE"):
+            elif prefix("HISTORIQUE "):
                 N = 5
                 if not t[1].strip().upper().endswith("HISTORIQUE"):
                     try:
@@ -256,7 +256,7 @@ def main():
                         "dans l'historique. Je les affiche maintenant :")
                 for line in list(history)[-N-1:-1]:
                     say(line)
-            elif prefix("CITATION"):
+            elif prefix("CITATION "):
                 try:
                     with open("data/citations", 'r') as fh:
                         citations = fh.readlines()
@@ -264,10 +264,10 @@ def main():
                                                           len(citations))]+"")
                 except:
                     ans("Je perds la mémoire…")
-            elif prefix("JEU"):
+            elif prefix("JEU "):
                 ans("J'ai perdu le jeu… (poke iXce)" +
                     "hbar, pi, 42, et tout le reste :) (poke cphyc)")
-            elif prefix("DISCLAIMER"):
+            elif prefix("DISCLAIMER "):
                 ans("Jarvis est un bot doté de capacités dépassant à la " +
                     "fois l'entendement et les limites d'irc. Prenez donc " +
                     "garde a toujours rester poli avec lui car bien " +
@@ -277,13 +277,15 @@ def main():
                     "KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED " +
                     "TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A " +
                     "PARTICULAR PURPOSE AND NONINFRINGEMENT.")
-            elif prefix("STREAM"):
+            elif prefix("STREAM "):
                 t = t[1].strip()
                 if t[6:].strip().upper().startswith("ON"):
+                    print("ok")	
                     if stream_cave is not None or oggfwd is not None:
+                        print("ok2")
                         stream_cave = subprocess.Popen([basepath +
                                                         "/stream_cave.py",
-                                                        "/dev/video*"],
+                                                        "/dev/video0"],
                                                        stdout=subprocess.PIPE)
                         oggfwd = subprocess.Popen([oggfwd_path + "/oggfwd",
                                                    stream_server,
@@ -308,7 +310,7 @@ def main():
                     ans("Retransmission interrompue.")
                 else:
                     ans("Usage : jarvis: stream on/off")
-            elif prefix("LOG"):
+            elif prefix("LOG "):
                 ans("wip...")
             else:
                 ans("Je n'ai pas compris…")
@@ -319,7 +321,7 @@ def main():
 basepath = os.path.dirname(__file__)
 irc = None
 stream_cave = subprocess.Popen([basepath + "/stream_cave.py",
-                                "/dev/video*"],
+                                "/dev/video0"],
                                 stdout=subprocess.PIPE)
 oggfwd = subprocess.Popen([oggfwd_path + "/oggfwd",
                             stream_server,
