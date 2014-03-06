@@ -352,4 +352,3 @@ except:
     if oggfwd is not None:
         oggfwd.terminate()
     print("Jarvis est triste de devoir vous quitter…")
-    sys.exit(0)
