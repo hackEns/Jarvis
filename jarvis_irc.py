@@ -279,7 +279,7 @@ def main():
                     "PARTICULAR PURPOSE AND NONINFRINGEMENT.")
             elif prefix("STREAM"):
                 t = t[1].strip()
-                if t[3:].strip().upper().startswith("ON"):
+                if t[6:].strip().upper().startswith("ON"):
                     if stream_cave is not None or oggfwd is not None:
                         stream_cave = subprocess.Popen([basepath +
                                                         "/stream_cave.py",
@@ -298,7 +298,7 @@ def main():
                         ans("Retransmission opérationnelle !")
                     else:
                         ans("La retransmission est déjà opérationnelle.")
-                elif t[3:].strip().upper().startswith("OFF"):
+                elif t[6:].strip().upper().startswith("OFF"):
                     if stream_cave is not None:
                         stream_cave.terminate()
                         stream_cave = None
