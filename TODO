@@ -1,7 +1,8 @@
-# TODO             
+# TODO
 * logs => Elie
-* crontask pour lancer jarvis au démarrage
 * Bug avec les scripts dans leds_wtf -> boucle infinie
+* Update
+
+Known bugs :
 * Only when addressed
 * Error closing link bug
-* Update
