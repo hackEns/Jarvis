@@ -1,6 +1,6 @@
 #!/usr/bin/sh
 
-until ping -c 4 hackens.org > /dev/null; do
+until ping -c 4 hackens.org > /dev/null 2>&1; do
     sleep 2
 done
 
