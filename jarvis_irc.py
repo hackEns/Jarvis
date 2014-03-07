@@ -280,13 +280,15 @@ def main():
             elif prefix("STREAM "):
                 t = t[1].strip()
                 if t[6:].strip().upper().startswith("ON"):
-                    print("ok")	
-                    if stream_cave is not None or oggfwd is not None:
-                        print("ok2")
+                    if oggfwd is not None and stream_cave is not None:
+                        ans("La retransmission est déjà opérationnelle.")
+                        continue
+                    if stream_cave is None: 
                         stream_cave = subprocess.Popen([basepath +
                                                         "/stream_cave.py",
                                                         "/dev/video0"],
                                                        stdout=subprocess.PIPE)
+                    if oggfwd is None:
                         oggfwd = subprocess.Popen([oggfwd_path + "/oggfwd",
                                                    stream_server,
                                                    stream_port,
@@ -297,9 +299,7 @@ def main():
                                                    "-u " + stream_url,
                                                    "-g " + stream_genre],
                                                   stdin=stream_cave.stdout)
-                        ans("Retransmission opérationnelle !")
-                    else:
-                        ans("La retransmission est déjà opérationnelle.")
+                    ans("Retransmission opérationnelle !")
                 elif t[6:].strip().upper().startswith("OFF"):
                     if stream_cave is not None:
                         stream_cave.terminate()
