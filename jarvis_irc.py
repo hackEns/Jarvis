@@ -90,7 +90,7 @@ def main():
         if text.find('PRIVMSG '+botnick) != -1:
             continue
 
-        t = text.split(botnick+':')
+        t = text.split("PRIVMSG " + channel + ":" + botnick + ':')
         if text.find('!') != -1:
             nick = text[1:text.index('!')]+": "
         else:
@@ -99,7 +99,7 @@ def main():
         if len(t) > 1:
             prefix = (t[1].strip() + " ").upper().startswith
             if prefix('AIDE'):
-                ans("Jarvis au rapport ! Usage :")
+                ans("Jarvis au rapport ! Commandes disponibles :")
                 say(" jarvis: info")
                 say(" jarvis: camera ANGLE, ANGLE entre 0 et 180")
                 say(" jarvis: camera ALIAS")

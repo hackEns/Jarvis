@@ -1,8 +1,10 @@
 # TODO
 * logs => Elie
-* Update
+* Beagleboard
 
 Known bugs :
 * Only when addressed
 * Error closing link bug
+* Bugs alias
+* Bug updater
 * autoreconnect à revoir => try / except trop large
