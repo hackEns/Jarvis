@@ -90,7 +90,7 @@ def main():
         if text.find('PRIVMSG '+botnick) != -1:
             continue
 
-        t = text.split("PRIVMSG " + channel + ":" + botnick + ':')
+        t = text.split("PRIVMSG " + channel + " :" + botnick + ':')
         if text.find('!') != -1:
             nick = text[1:text.index('!')]+": "
         else:
