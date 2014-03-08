@@ -113,6 +113,7 @@ def main():
                 say(" jarvis: citation")
                 say(" jarvis: jeu")
                 say(" jarvis: stream on/off")
+                say(" jarvis: update")
             elif prefix('INFO '):
                 ans("Quartier général en direct ici : " +
                     "http://ulminfo.fr:8080/hackave.ogg")
@@ -328,7 +329,12 @@ def main():
                 else:
                     ans("Usage : jarvis: stream on/off")
             elif prefix("LOG "):
-                ans("wip...")
+                ans("wip…")
+            elif prefix("UPDATE"):
+                add_history("update")
+                subprocess.Popen([basepath + "/updater.py"])
+                ans("I will now update myself.")
+                raise SystemExit
             else:
                 ans("Je n'ai pas compris…")
 
@@ -370,4 +376,6 @@ except:
         stream_cave.terminate()
     if oggfwd is not None:
         oggfwd.terminate()
+    if leds is not None:
+        leds.terminate()
     print("Jarvis est triste de devoir vous quitter…")
