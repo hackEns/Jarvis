@@ -157,7 +157,7 @@ def main():
             elif prefix('ALIAS '):
                 alias = (t[1].strip())[5:].strip()
                 try:
-                    with open(basepath+"/"+alias+".alias", 'r') as fh:
+                    with open(basepath+"/data/"+alias+".alias", 'r') as fh:
                         ans("Liste des alias disponibles pour "+alias)
                         for line in fh.readlines():
                             say(line)
