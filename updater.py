@@ -12,7 +12,7 @@ print("Déconnexion de jarvis")
 os.kill(sys.argv[1], signal.SIGTERM)
 
 print("Mise à jour")
-ret = subprocess.call(["git", "pull"])
+ret = subprocess.call(["git", "pull", "updater"])
 
 if ret == 0:
     print("Mis à jour avec succès !")
