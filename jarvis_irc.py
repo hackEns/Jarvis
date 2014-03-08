@@ -332,7 +332,7 @@ def main():
                 ans("wip…")
             elif prefix("UPDATE"):
                 add_history("update")
-                subprocess.Popen([basepath + "/updater.py", os.getpid()])
+                subprocess.Popen([basepath + "/updater.sh", basepath, os.getpid()])
                 ans("I will now update myself.")
                 raise SystemExit
             else:
