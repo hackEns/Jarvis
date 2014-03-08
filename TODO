@@ -1,8 +1,8 @@
 # TODO
 * logs => Elie
-* Bug avec les scripts dans leds_wtf -> boucle infinie
 * Update
 
 Known bugs :
 * Only when addressed
 * Error closing link bug
+* autoreconnect à revoir => try / except trop large

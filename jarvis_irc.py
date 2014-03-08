@@ -30,7 +30,7 @@ def main():
     global irc, server, channel, botnick, password
     global joined, identified, history
     global debug, basepath, oggfwd_path
-    global stream_cave, oggfwd
+    global stream_cave, oggfwd, leds
     global stream_server, stream_port, stream_pass, stream_mount, stream_name
     global stream_desc, stream_url, stream_genre
 
@@ -105,7 +105,7 @@ def main():
                 say(" jarvis: camera ALIAS")
                 say(" jarvis: alias ALIAS, ALIAS = camera, more to come")
                 say(" jarvis: lumiere R V B, R, V et B entre 0 et 255")
-                say(" jarvis: led wtf/jarvis/strobo/…")
+                say(" jarvis: led off/wtf/jarvis/strobo/…")
                 say(" jarvis: dis \"qqchose\"")
                 say(" jarvis: atx on/off")
                 say(" jarvis: historique N, N=nombre de lignes, " +
@@ -175,6 +175,8 @@ def main():
                        V > 255 or V < 0 or
                        B > 255 or B < 0):
                         raise ValueError
+                    if leds is not None:
+                        leds.terminate()
                     add_history("lumiere "+str(R)+" "+str(V)+" "+str(B))
                     ret = subprocess.call([basepath+"/jarvis",
                                           "lumiere",
@@ -190,15 +192,28 @@ def main():
                         "R, V et B entre 0 et 255")
             elif prefix('LED '):
                 t = (t[1].strip())[3:].strip().upper()
+                if t.startswith("OFF"):
+                    add_history("led off")
+                    if leds is not None:
+                        leds.terminate()
+                    subprocess.call([basepath+"/jarvis",
+                                     "lumiere",
+                                     str(R), str(V), str(B)],
+                                    stdout=devnull)
+                    ans("LEDs éteintes.")
+                    continue
+
                 scripts = [f.upper() for f in os.listdir('leds_wtf/') if
                            os.path.isfile(os.path.join('leds_wtf', f))]
 
                 if t in scripts:
                     add_history("led "+t)
-                    ret = subprocess.call([basepath +
-                                          "/leds_wtf/led_"+t.lower()+".py"],
-                                          stdout=devnull)
-                    if ret == 0:
+                    if leds is not None:
+                        leds.terminate()
+                    leds = subprocess.Popen([basepath +
+                                             "/leds_wtf/led_"+t.lower()+".py"],
+                                            stdout=devnull)
+                    if leds is not None:
                         ans("LED passée en mode "+t+".")
                     else:
                         ans("Je ne peux pas passer la LED en mode "+t+".")
@@ -280,10 +295,11 @@ def main():
             elif prefix("STREAM "):
                 t = t[1].strip()
                 if t[6:].strip().upper().startswith("ON"):
+                    add_history("stream on")
                     if oggfwd is not None and stream_cave is not None:
                         ans("La retransmission est déjà opérationnelle.")
                         continue
-                    if stream_cave is None: 
+                    if stream_cave is None:
                         stream_cave = subprocess.Popen([basepath +
                                                         "/stream_cave.py",
                                                         "/dev/video0"],
@@ -301,6 +317,7 @@ def main():
                                                   stdin=stream_cave.stdout)
                     ans("Retransmission opérationnelle !")
                 elif t[6:].strip().upper().startswith("OFF"):
+                    add_history("stream off")
                     if stream_cave is not None:
                         stream_cave.terminate()
                         stream_cave = None
@@ -322,18 +339,19 @@ basepath = os.path.dirname(__file__)
 irc = None
 stream_cave = subprocess.Popen([basepath + "/stream_cave.py",
                                 "/dev/video0"],
-                                stdout=subprocess.PIPE)
+                               stdout=subprocess.PIPE)
 oggfwd = subprocess.Popen([oggfwd_path + "/oggfwd",
-                            stream_server,
-                            stream_port,
-                            stream_pass,
-                            stream_mount,
-                            "-n " + stream_name,
-                            "-d " + stream_desc,
-                            "-u " + stream_url,
-                            "-g " + stream_genre],
-                            stdin=stream_cave.stdout)
+                           stream_server,
+                           stream_port,
+                           stream_pass,
+                           stream_mount,
+                           "-n " + stream_name,
+                           "-d " + stream_desc,
+                           "-u " + stream_url,
+                           "-g " + stream_genre],
+                          stdin=stream_cave.stdout)
 print("Retransmission opérationnelle !")
+leds = None
 
 debug = True
 
