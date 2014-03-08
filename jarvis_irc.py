@@ -139,7 +139,7 @@ def main():
                         with open(basepath+"/data/camera.alias", 'r') as fh:
                             alias = fh.readlines()
                             for line in [i for i in alias if
-                                         i.startswith(angle.upper)]:
+                                         i.startswith(angle.upper())]:
                                 angle_int = int((line.split(":"))[1].strip())
                                 add_history("camera "+angle)
                                 ret = subprocess.call([basepath+"/jarvis",

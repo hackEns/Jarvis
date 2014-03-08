@@ -4,6 +4,5 @@
 
 Known bugs :
 * Error closing link bug
-* Bugs alias
 * Bug updater
 * autoreconnect à revoir => try / except trop large
