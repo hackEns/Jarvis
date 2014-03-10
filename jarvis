@@ -12,6 +12,7 @@ lum_path = "/dev/ttyUSB0"
 
 def initSerial(path):
     os.system("stty -hup -F " + path)
+    os.system("stty -hup -F " + path)
     try:
         return serial.Serial(path, 115200)
     except:
@@ -20,10 +21,10 @@ def initSerial(path):
 
 def send(ser, mode, msg):
     ser.readline()
-    ser.write(chr(mode))
+    ser.write(chr(mode).encode())
     ser.flush()
     print(ser.readline().strip())
-    ser.write(msg)
+    ser.write(msg.encode())
     ser.flush()
     print(ser.readline().strip())
 
@@ -45,16 +46,16 @@ def lumiere(r, v, b):
             print("La couleur doit être entre 0 et 255")
             raise SystemExit
         else:
-            msg.append(c/2)
+            msg.append(int(c/2))
 
     ser = initSerial(lum_path)
     for j in msg:
-        ser.write(chr(j))
+        ser.write(chr(j).encode())
 
 
 def atx(etat):
     ser = initSerial(atx_path)
-    send(ser, 2, chr(etat))
+    send(ser, 2, chr((etat)))
 
 
 if len(sys.argv) < 2:
