@@ -199,7 +199,7 @@ def main():
                         leds.terminate()
                     subprocess.call([basepath+"/jarvis",
                                      "lumiere",
-                                     str(R), str(V), str(B)],
+                                     "0", "0", "0"],
                                     stdout=devnull)
                     ans("LEDs éteintes.")
                     continue
@@ -332,7 +332,8 @@ def main():
                 ans("wip…")
             elif prefix("UPDATE"):
                 add_history("update")
-                subprocess.Popen([basepath + "/updater.sh", basepath, os.getpid()])
+                subprocess.Popen([basepath + "/updater.sh",
+                                  basepath, os.getpid()])
                 ans("I will now update myself.")
                 raise SystemExit
             else:
