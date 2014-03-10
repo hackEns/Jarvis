@@ -6,4 +6,3 @@ Known bugs :
 * Error closing link bug
 * Bug updater
 * autoreconnect à revoir => try / except trop large
-* A/R cam => diff avec test.py
