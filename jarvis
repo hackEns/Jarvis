@@ -3,6 +3,7 @@
 import os
 import sys
 import serial
+import struct
 
 
 cam_path = "/dev/ttyACM1"
@@ -21,12 +22,12 @@ def initSerial(path):
 
 def send(ser, mode, msg):
     ser.readline()
-    ser.write(chr(mode).encode())
+    ser.write(chr(mode).encode("ascii"))
     ser.flush()
-    print(ser.readline().strip())
-    ser.write(msg.encode())
+    print(ser.readline().decode().strip())
+    ser.write(struct.pack("I", msg))#.encode())
     ser.flush()
-    print(ser.readline().strip())
+    print(ser.readline().decode().strip())
 
 
 def camera(angle):
@@ -34,7 +35,7 @@ def camera(angle):
         print("L'angle doit être entre 0 et 180")
         raise SystemExit
 
-    towrite = chr(127+int(127*float(angle)/180))
+    towrite = int(127+int(127*float(angle)/180))
     ser = initSerial(cam_path)
     send(ser, 1, towrite)
 
@@ -50,12 +51,12 @@ def lumiere(r, v, b):
 
     ser = initSerial(lum_path)
     for j in msg:
-        ser.write(chr(j).encode())
+        ser.write(struct.pack("I", j))
 
 
 def atx(etat):
     ser = initSerial(atx_path)
-    send(ser, 2, chr((etat)))
+    send(ser, 2, etat)
 
 
 if len(sys.argv) < 2:
