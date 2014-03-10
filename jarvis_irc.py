@@ -204,7 +204,7 @@ def main():
                     ans("LEDs éteintes.")
                     continue
 
-                scripts = [f.upper() for f in os.listdir('leds_wtf/') if
+                scripts = [f.upper().strip(".PY") for f in os.listdir('leds_wtf/') if
                            os.path.isfile(os.path.join('leds_wtf', f))]
 
                 if t in scripts:
@@ -212,7 +212,7 @@ def main():
                     if leds is not None:
                         leds.terminate()
                     leds = subprocess.Popen([basepath +
-                                             "/leds_wtf/led_"+t.lower()+".py"],
+                                             "/leds_wtf/"+t.lower()+".py"],
                                             stdout=devnull)
                     if leds is not None:
                         ans("LED passée en mode "+t+".")
