@@ -3,6 +3,7 @@
 import os
 import sys
 import serial
+import struct
 
 
 cam_path = "/dev/ttyACM1"
@@ -12,6 +13,7 @@ lum_path = "/dev/ttyUSB0"
 
 def initSerial(path):
     os.system("stty -hup -F " + path)
+    os.system("stty -hup -F " + path)
     try:
         return serial.Serial(path, 115200)
     except:
@@ -20,12 +22,12 @@ def initSerial(path):
 
 def send(ser, mode, msg):
     ser.readline()
-    ser.write(chr(mode))
+    ser.write(chr(mode).encode("ascii"))
     ser.flush()
-    print(ser.readline().strip())
-    ser.write(msg)
+    print(ser.readline().decode().strip())
+    ser.write(struct.pack("I", msg))#.encode())
     ser.flush()
-    print(ser.readline().strip())
+    print(ser.readline().decode().strip())
 
 
 def camera(angle):
@@ -33,7 +35,7 @@ def camera(angle):
         print("L'angle doit être entre 0 et 180")
         raise SystemExit
 
-    towrite = chr(127+int(127*float(angle)/180))
+    towrite = int(127+int(127*float(angle)/180))
     ser = initSerial(cam_path)
     send(ser, 1, towrite)
 
@@ -45,16 +47,16 @@ def lumiere(r, v, b):
             print("La couleur doit être entre 0 et 255")
             raise SystemExit
         else:
-            msg.append(c/2)
+            msg.append(int(c/2))
 
     ser = initSerial(lum_path)
     for j in msg:
-        ser.write(chr(j))
+        ser.write(struct.pack("I", j))
 
 
 def atx(etat):
     ser = initSerial(atx_path)
-    send(ser, 2, chr(etat))
+    send(ser, 2, etat)
 
 
 if len(sys.argv) < 2:

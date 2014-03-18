@@ -5,5 +5,3 @@
 
 Known bugs :
 * Bug updater
-* Error closing link bug
-* autoreconnect à revoir => try / except trop large

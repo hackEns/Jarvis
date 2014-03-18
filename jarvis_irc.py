@@ -36,6 +36,9 @@ def main():
 
     devnull = subprocess.DEVNULL
 
+    if irc is not None:
+        irc.close()
+
     irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Connecting to : "+server)
     irc.settimeout(250)
@@ -58,12 +61,6 @@ def main():
             else:
                 print(e)
                 sys.exit(1)
-
-        if text.find("ERROR :Closing Link:") != -1:
-            joined = False
-            identified = False
-            irc.close()
-            break
 
         if(text.find('MODE ' + botnick) != -1 and
            not joined and not identified):
@@ -199,12 +196,12 @@ def main():
                         leds.terminate()
                     subprocess.call([basepath+"/jarvis",
                                      "lumiere",
-                                     str(R), str(V), str(B)],
+                                     "0", "0", "0"],
                                     stdout=devnull)
                     ans("LEDs éteintes.")
                     continue
 
-                scripts = [f.upper() for f in os.listdir('leds_wtf/') if
+                scripts = [f.upper().strip(".PY") for f in os.listdir('leds_wtf/') if
                            os.path.isfile(os.path.join('leds_wtf', f))]
 
                 if t in scripts:
@@ -212,7 +209,7 @@ def main():
                     if leds is not None:
                         leds.terminate()
                     leds = subprocess.Popen([basepath +
-                                             "/leds_wtf/led_"+t.lower()+".py"],
+                                             "/leds_wtf/"+t.lower()+".py"],
                                             stdout=devnull)
                     if leds is not None:
                         ans("LED passée en mode "+t+".")
@@ -332,7 +329,8 @@ def main():
                 ans("wip…")
             elif prefix("UPDATE"):
                 add_history("update")
-                subprocess.Popen([basepath + "/updater.sh", basepath, os.getpid()])
+                subprocess.Popen([basepath + "/updater.sh",
+                                  basepath, os.getpid()])
                 ans("I will now update myself.")
                 raise SystemExit
             else:
