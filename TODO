@@ -1,8 +1,9 @@
 # TODO
 * logs => Elie
 * Beagleboard
+* cf Mc sur #ulminfo
 
 Known bugs :
-* Error closing link bug
 * Bug updater
+* Error closing link bug
 * autoreconnect à revoir => try / except trop large
