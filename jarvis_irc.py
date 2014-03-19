@@ -47,6 +47,9 @@ def main():
               " :Jarvis au rapport !\n").encode())
     irc.send(("NICK " + botnick + "\n").encode())
 
+    tchoutchou_time = random.randrange(3600, 604800)
+    last_tchoutchou = int(time.time())
+
     while True:
         try:
             text = irc.recv(2040).decode()
@@ -61,6 +64,11 @@ def main():
             else:
                 print(e)
                 sys.exit(1)
+
+        if int(time.time()) - last_tchoutchou > tchoutchou_time:
+            say("Tchou tchou !")
+            tchoutchou_time = random.randrange(3600, 604800)
+            last_tchoutchou = int(time.time())
 
         if(text.find('MODE ' + botnick) != -1 and
            not joined and not identified):
@@ -201,7 +209,8 @@ def main():
                     ans("LEDs éteintes.")
                     continue
 
-                scripts = [f.upper().strip(".PY") for f in os.listdir('leds_wtf/') if
+                scripts = [f.upper().strip(".PY")
+                           for f in os.listdir('leds_wtf/') if
                            os.path.isfile(os.path.join('leds_wtf', f))]
 
                 if t in scripts:
