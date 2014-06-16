@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 
+import config
 import os
 import sys
 import serial
 import struct
-
-
-cam_path = "/dev/ttyACM1"
-atx_path = cam_path
-lum_path = "/dev/ttyUSB0"
 
 
 def initSerial(path):
@@ -25,7 +21,7 @@ def send(ser, mode, msg):
     ser.write(chr(mode).encode("ascii"))
     ser.flush()
     print(ser.readline().decode().strip())
-    ser.write(struct.pack("I", msg))#.encode())
+    ser.write(struct.pack("I", msg))
     ser.flush()
     print(ser.readline().decode().strip())
 
@@ -36,7 +32,7 @@ def camera(angle):
         raise SystemExit
 
     towrite = int(127+int(127*float(angle)/180))
-    ser = initSerial(cam_path)
+    ser = initSerial(config.cam_path)
     send(ser, 1, towrite)
 
 
@@ -49,66 +45,63 @@ def lumiere(r, v, b):
         else:
             msg.append(int(c/2))
 
-    ser = initSerial(lum_path)
+    ser = initSerial(config.lum_path)
     for j in msg:
         ser.write(struct.pack("I", j))
 
 
 def atx(etat):
-    ser = initSerial(atx_path)
+    ser = initSerial(config.atx_path)
     send(ser, 2, etat)
 
 
-if len(sys.argv) < 2:
-    print("Usage: %s action ..." % (sys.argv[0], ))
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Usage: %s action ..." % (sys.argv[0], ))
+        raise SystemExit
+
+    mode = "camera"
+    if sys.argv[1] == mode:
+        if len(sys.argv) < 3:
+            print("Usage: %s %s angle" % (sys.argv[0], mode))
+            raise SystemExit
+        else:
+            camera(int(sys.argv[2]))
+        exit(0)
+
+    mode = "lumiere"
+    if sys.argv[1] == mode:
+        if len(sys.argv) < 5:
+            print("Usage: %s %s rouge vert bleu" % (sys.argv[0], mode))
+            raise SystemExit
+        else:
+            lumiere(int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
+
+        exit(0)
+
+    mode = "dis"
+    import subprocess
+    if sys.argv[1] == mode:
+        if len(sys.argv) != 3:
+            print("Usage %s %s phrase" % (sys.argv[0], mode))
+            raise SystemExit
+        else:
+            subprocess.call(["espeak",
+                             "-vfrench+m5",
+                             "-p 5",
+                             "-s 50",
+                             "-a 200",
+                             sys.argv[2]])
+        exit(0)
+
+    mode = "atx"
+    if sys.argv[1] == mode:
+        if len(sys.argv) < 3 or not sys.argv[2].upper() in ['ON', 'OFF']:
+            print("Usage: %s %s ON|OFF" % (sys.argv[0], mode))
+            raise SystemExit
+        else:
+            atx(1 if sys.argv[2].upper() == 'ON' else 0)
+        exit(0)
+
+    print("%s: Instruction inconnue : %s" % (sys.argv[0], sys.argv[1]))
     raise SystemExit
-
-
-mode = "camera"
-if sys.argv[1] == mode:
-    if len(sys.argv) < 3:
-        print("Usage: %s %s angle" % (sys.argv[0], mode))
-        raise SystemExit
-    else:
-        camera(int(sys.argv[2]))
-    exit(0)
-
-
-mode = "lumiere"
-if sys.argv[1] == mode:
-    if len(sys.argv) < 5:
-        print("Usage: %s %s rouge vert bleu" % (sys.argv[0], mode))
-        raise SystemExit
-    else:
-        lumiere(int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
-
-    exit(0)
-
-mode = "dis"
-import subprocess
-if sys.argv[1] == mode:
-    if len(sys.argv) != 3:
-        print("Usage %s %s phrase" % (sys.argv[0], mode))
-        raise SystemExit
-    else:
-        subprocess.call(["espeak",
-                         "-vfrench+m5",
-                         "-p 5",
-                         "-s 50",
-                         "-a 200",
-                         sys.argv[2]])
-    exit(0)
-
-
-mode = "atx"
-if sys.argv[1] == mode:
-    if len(sys.argv) < 3 or not sys.argv[2].upper() in ['ON', 'OFF']:
-        print("Usage: %s %s ON|OFF" % (sys.argv[0], mode))
-        raise SystemExit
-    else:
-        atx(1 if sys.argv[2].upper() == 'ON' else 0)
-    exit(0)
-
-
-print("%s: Instruction inconnue : %s" % (sys.argv[0], sys.argv[1]))
-raise SystemExit
