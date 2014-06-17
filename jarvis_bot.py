@@ -4,7 +4,9 @@ import config
 import irclib
 import irc.bot as ircbot
 import jarvis_cmd
+from multiprocessing import Process
 import os
+import random
 
 
 class InvalidArgs(Exception):
@@ -20,6 +22,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.version = "0.2"
         self.basepath = os.path.dirname(os.path.realpath(__file__))
         self.history = self.read_history()
+        self.leds = None
         self.rules = {}
         self.add_rule("aide", self.aide)
         self.add_rule("alias", self.alias)
@@ -34,6 +37,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("lumiere", self.lumiere)
         self.add_rule("stream", self.stream)
         self.add_rule("update", self.update)
+        self.alias = self.read_alias()
         self.nickserved = False
 
     def add_rule(self, name, action, help_msg=""):
@@ -47,6 +51,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Upon server connection"""
         self.privmsg(self, "nickserv", "identify "+config.password)
         serv.join(config.channel)
+        self.execute_delayed(random.randrange(3600, 604800), self.tchou_tchou)
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
@@ -78,10 +83,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def add_history(self, author, cmd):
         """Adds something to history"""
-        self.history.append({"author": author, "cmd": cmd})
-        while len(self.history) > config.history_length:
-            self.history.popleft()
-        self.write_history()
+        insert = {"author": author, "cmd": cmd}
+        if config.history_no_doublons and history[-1] != insert:
+            self.history.append(insert)
+            while len(self.history) > config.history_length:
+                self.history.popleft()
+            self.write_history()
 
     def write_history(self):
         write = ''
@@ -96,10 +103,30 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             with open(self.basepath+"data/history", 'r') as fh:
                 for line in fh.readlines():
                     line = [i.strip() for i in line.split('\t')]
-                    insert = {'author': line[0], 'cmd': line[1]}
-                    if config.history_no_doublons and history[-1] != insert:
-                        history.append(history)
+                    history.append({'author': line[0], 'cmd': line[1]})
         return history
+
+    def write_alias(self):
+        write = {}
+        for item in self.alias:
+            try:
+                write[item["type"]] += item["name"]+":"+item["value"]+"\n"
+            except KeyError:
+                write[item["type"]] = item["name"]+":"+item["value"]+"\n"
+        for type in write:
+            with open(self.basepath+"data/"+type+".alias", "w+") as fh:
+                fh.write(write)
+
+    def read_alias(self):
+        alias = []
+        if os.path.isfile(self.basepath+"data/camera.alias"):
+            with open(self.basepath+"data/camera.alias", 'r') as fh:
+                for line in fh.readlines():
+                    line = [i.strip() for i in line.split(':')]
+                    alias.append({"type": "camera",
+                                  "name": line[0]},
+                                  "value": line[1]})
+        return sorted(alias, key = lambda k: k['type'])
 
     def get_version(self):
         """Returns the bot version"""
@@ -121,7 +148,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             angle = int(args[1])
             if angle < 0 or angle > 180:
                 raise ValueError
-            self.add_history("camera "+str(angle))
+            self.add_history(author, "camera "+str(angle))
             if jarvis_cmd.camera(angle):
                 self.ans(serv, author, "Caméra réglée à "+angle+"°.")
             else:
@@ -135,7 +162,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     raise InvalidArgs
                 else:
                     angle = int((matchs[0].split(":"))[1].strip())
-                    self.add_history("camera "+alias)
+                    self.add_history(author, "camera "+alias)
                     if jarvis_cmd.camera(angle):
                         self.ans(serv, author, "Caméra réglée à "+angle+"°.")
                     else:
@@ -144,17 +171,51 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def alias(self, serv, author, args):
         """Handles aliases"""
+        if len(args) > 4 and args[1] == "add":
+            self.alias.append({"type": args[2],
+                               "name": args[3],
+                               "value": args[4]})
+            self.write_alias()
+            return
+        elif len(args) > 1:
+            aliases = [i for i in self.alias if i['type'] == msg[1]]
+        else:
+            aliases = self.alias
         # TODO
 
     def lumiere(self, serv, author, args):
         """Handles light"""
-        # TODO
+        if len(args) == 4:
+            try:
+                R = int(args[1])
+                G = int(args[2])
+                B = int(args[3])
+
+                if(R > 255 or R < 0 or
+                   G > 255 or G < 0 or
+                   B > 255 or B < 0):
+                    raise ValueError
+
+                target = jarvis_cmd.lumiere
+                args = (R, G, B)
+            except ValueError:
+                raise InvalidArgs
+        elif len(args) == 2:
+            script = os.path.join(self.basepath+"data/leds", args[1])
+            if os.path.isfile(script):
+                target = None  # TODO
+                args = None
+        else:
+            raise InvalidArgs
+        if self.leds is not None:
+            self.leds.terminate()
+        self.leds = Process(target=target, args=args)
 
     def dis(self, serv, author, args):
         """Say something"""
         if len(args) > 1:
             something = " ".join(args[1:]).strip('" ')
-            self.add_history("dis "+something)
+            self.add_history(author, "dis "+something)
             if jarvis_cmd.dis(something):
                 self.ans(serv, author, something)
             else:
@@ -165,7 +226,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def atx(self, serv, author, args):
         """Handles RepRap ATX"""
         if args[1] in ["on", "off"]:
-            self.add_history("atx "+args[1])
+            self.add_history(author, "atx "+args[1])
             if args[1] == "on" and jarvis_cmd.atx(1):
                 self.ans(author, "ATX allumée.")
             elif args[1] == "off" and jarvis_cmd.atx(0):
@@ -197,6 +258,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         else:
             for hist in self.history[start:end]:
                 self.say(serv, hist['cmd']+" par "+hist['author'])
+        self.add_history(author, " ".join(args))
 
     def jeu(self, serv, author, args):
         """Handles game"""
@@ -227,6 +289,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def tchou_tchou(self, serv):
         """Says tchou tchou"""
         self.say(serv, "Tchou tchou !")
+        self.execute_delayed(random.randrange(3600, 604800), self.tchou_tchou)
 
     def stream(self, serv):
         # TODO
