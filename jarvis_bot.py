@@ -84,7 +84,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def add_history(self, author, cmd):
         """Adds something to history"""
         insert = {"author": author, "cmd": cmd}
-        if config.history_no_doublons and history[-1] != insert:
+        if config.history_no_doublons and self.history[-1] != insert:
             self.history.append(insert)
             while len(self.history) > config.history_length:
                 self.history.popleft()
@@ -124,9 +124,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 for line in fh.readlines():
                     line = [i.strip() for i in line.split(':')]
                     alias.append({"type": "camera",
-                                  "name": line[0]},
+                                  "name": line[0],
                                   "value": line[1]})
-        return sorted(alias, key = lambda k: k['type'])
+        return sorted(alias, key=lambda k: k['type'])
 
     def get_version(self):
         """Returns the bot version"""
@@ -156,32 +156,43 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         except ValueError:
             alias = args[1].lower()
             angle = -1
-            with open(self.basepath+"/data/camera.alias", 'r') as fh:
-                matchs = [i for i in fh.readlines if i.startswith(alias)]
-                if len(matchs) == 0:
-                    raise InvalidArgs
+            matchs = [i for i in self.alias
+                      if i["type"] == "camera" and i["name"] == alias]
+            if len(matchs) == 0:
+                raise InvalidArgs
+            else:
+                angle = int(matchs[0]["value"])
+                self.add_history(author, "camera "+alias)
+                if jarvis_cmd.camera(angle):
+                    self.ans(serv, author, "Caméra réglée à "+angle+"°.")
                 else:
-                    angle = int((matchs[0].split(":"))[1].strip())
-                    self.add_history(author, "camera "+alias)
-                    if jarvis_cmd.camera(angle):
-                        self.ans(serv, author, "Caméra réglée à "+angle+"°.")
-                    else:
-                        self.ans(serv, author,
-                                 "Je n'arrive pas à régler la caméra.")
+                    self.ans(serv, author,
+                             "Je n'arrive pas à régler la caméra.")
 
     def alias(self, serv, author, args):
         """Handles aliases"""
+        # TODO : doublons
         if len(args) > 4 and args[1] == "add":
             self.alias.append({"type": args[2],
                                "name": args[3],
                                "value": args[4]})
             self.write_alias()
+            self.ans(serv, author,
+                     "Nouvel alias ajouté : " +
+                     "{"+args[2]+", "+args[3]+", "+args[4]+"}")
             return
         elif len(args) > 1:
-            aliases = [i for i in self.alias if i['type'] == msg[1]]
+            aliases = [i for i in self.alias if i['type'] == args[1]]
         else:
             aliases = self.alias
-        # TODO
+        types = set([i['type'] for i in aliases])
+        for i in types:
+            self.ans(serv, author, "Liste des alias disponibles pour "+i)
+            to_say = ""
+            for j in [k for k in self.alias if k['type'] == i]:
+                to_say += "{"+j['name']+", "+j['value']+"}, "
+            to_say = to_say.strip(", ")
+            self.say(serv, to_say)
 
     def lumiere(self, serv, author, args):
         """Handles light"""
