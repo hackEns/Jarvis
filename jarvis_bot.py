@@ -110,6 +110,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         msg = ev.arguments[0].strip().lower().split(':', 1)
         if msg[0].strip() == self.connection.get_nickname().lower():
             msg = [i for i in msg[1].strip().split(' ') if i]
+            self.add_history(author, " ".join(msg))
             if msg[0] in self.rules:
                 try:
                     self.rules[msg[0]]['action'](serv, author, msg)
@@ -130,8 +131,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Adds something to history"""
         insert = {"author": author, "cmd": cmd}
         if(config.history_no_doublons and
-           len(self.history) > 0 and
-           self.history[-1] != insert):
+           (len(self.history) == 0 or
+           self.history[-1] != insert)):
             self.history.append(insert)
             while len(self.history) > config.history_length:
                 self.history.popleft()
@@ -231,7 +232,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             angle = int(args[1])
             if angle < 0 or angle > 180:
                 raise ValueError
-            self.add_history(author, "camera "+str(angle))
             if jarvis_cmd.camera(angle):
                 self.camera_pos = str(angle)+"°"
                 self.ans(serv, author, "Caméra réglée à "+angle+"°.")
@@ -246,7 +246,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 raise InvalidArgs
             else:
                 angle = int(matchs[0]["value"])
-                self.add_history(author, "camera "+alias)
                 if jarvis_cmd.camera(angle):
                     self.camera_pos = args[1]
                     self.ans(serv, author, "Caméra réglée à "+angle+"°.")
@@ -287,6 +286,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def lumiere(self, serv, author, args):
         """Handles light"""
+        # TODO : Reprendre + add_history
         if self.leds is not None:
             self.leds.terminate()
         if len(args) == 4:
@@ -327,7 +327,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Say something"""
         if len(args) > 1:
             something = " ".join(args[1:]).strip('" ')
-            self.add_history(author, "dis "+something)
             if jarvis_cmd.dis(something):
                 self.ans(serv, author, something)
             else:
@@ -338,7 +337,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def atx(self, serv, author, args):
         """Handles RepRap ATX"""
         if len(args) > 1 and args[1] in ["on", "off"]:
-            self.add_history(author, "atx "+args[1])
             if args[1] == "on" and jarvis_cmd.atx(1):
                 self.atx_status = args[1]
                 self.ans(author, "ATX allumée.")
@@ -362,17 +360,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 start = -int(args[1])
                 end = None
             else:
-                start = -config.hist_lines_to_show
+                start = -config.history_lines_to_show
                 end = None
         except ValueError:
             raise InvalidArgs
-        self.ans(serv, "Historique :")
+        self.ans(serv, author, "Historique :")
         if len(self.history[start:end]) == 0:
             self.say(serv, "Pas d'historique disponible.")
         else:
             for hist in self.history[start:end]:
                 self.say(serv, hist['cmd']+" par "+hist['author'])
-        self.add_history(author, " ".join(args))
 
     def jeu(self, serv, author, args):
         """Handles game"""
@@ -397,7 +394,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def update(self, serv, author, args):
         """Handles bot updating"""
-        self.add_history("update")
         subprocess.Popen([self.basepath+"updater.sh", self.basepath])
         self.ans(serv, author, "I will now update myself.")
         sys.exit()
@@ -411,7 +407,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def stream(self, serv, author, args):
         """Handles stream transmission"""
         if args[1] == "on":
-            self.add_history("stream on")
             if self.oggfwd is not None and self.stream is not None:
                 self.ans(serv, author,
                          "La retransmission est déjà opérationnelle.")
@@ -434,7 +429,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                stdin=self.stream.stdout)
             self.ans(serv, author, "Retransmission opérationnelle !")
         elif args[1] == "off":
-            self.add_history("stream off")
             if self.stream is not None:
                 self.stream.terminate()
                 self.stream = None
