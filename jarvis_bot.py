@@ -3,7 +3,6 @@
 import config
 import irc.bot as ircbot
 import jarvis_cmd
-from multiprocessing import Process
 import os
 import random
 import subprocess
@@ -210,7 +209,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 to_say += "ATX : "+greenc+"on"+endc+", "
         if 'leds' in infos_items:
-            if self.current_leds is not None and self.leds_alive():
+            if self.current_leds is not None:
                 to_say += "LEDs : "+self.current_leds+", "
             else:
                 to_say += "LEDs : "+redc+"off"+endc+", "
@@ -287,9 +286,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def lumiere(self, serv, author, args):
         """Handles light"""
-        # TODO : Reprendre + add_history
         if self.leds is not None:
-            self.leds.terminate()
+            try:
+                if isinstance(self.leds, subprocess.Popen):
+                    self.leds.terminate()
+            except ProcessLookupError:
+                pass
+            self.leds = None
         if len(args) == 4:
             try:
                 R = int(args[1])
@@ -301,9 +304,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                    B > 255 or B < 0):
                     raise ValueError
 
-                self.leds = Process(target=jarvis_cmd.lumiere, args=(R, G, B))
-                self.current_leds = "("+str(R)+", "+str(G)+", "+str(B)+")"
-                self.leds.start()
+                if jarvis_cmd.lumiere(R, G, B):
+                    self.current_leds = "("+str(R)+", "+str(G)+", "+str(B)+")"
+                    self.ans(serv, author, "LED réglée sur "+self.current_leds)
+                else:
+                    self.ans(serv, author, "Impossible de régler les LEDs.")
             except ValueError:
                 raise InvalidArgs
         elif len(args) == 2:
@@ -319,8 +324,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Returns True if leds process is alive"""
         if isinstance(self.leds, subprocess.Popen):
             return self.leds.poll() is None
-        elif isinstance(self.leds, Process):
-            return self.leds.is_alive()
         else:
             return False
 
