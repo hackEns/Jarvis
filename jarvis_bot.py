@@ -40,6 +40,19 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("update", self.update)
         self.alias = self.read_alias()
         self.nickserved = False
+        self.stream = subprocess.Popen(["python", self.basepath + "/stream.py",
+                                        "/dev/video*"],
+                                       stdout=subprocess.PIPE)
+        self.oggfwd = subprocess.Popen([config.oggfwd_path + "/oggfwd",
+                                        config.stream_server,
+                                        config.stream_port,
+                                        config.stream_pass,
+                                        config.stream_mount,
+                                        "-n " + config.stream_name,
+                                        "-d " + config.stream_desc,
+                                        "-u " + config.stream_url,
+                                        "-g " + config.stream_genre],
+                                       stdin=self.stream.stdout)
 
     def add_rule(self, name, action, help_msg=""):
         name = name.lower()
@@ -53,6 +66,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.privmsg(self, "nickserv", "identify "+config.password)
         serv.join(config.channel)
         self.execute_delayed(random.randrange(3600, 604800), self.tchou_tchou)
+        self.say(serv, "Retransmission opérationnelle !")
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
@@ -305,9 +319,52 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.say(serv, "Tchou tchou !")
         self.execute_delayed(random.randrange(3600, 604800), self.tchou_tchou)
 
-    def stream(self, serv):
-        # TODO
-        pass
+    def stream(self, serv, author, args):
+        """Handles stream transmission"""
+        if args[1] == "on":
+            self.add_history("stream on")
+            if self.oggfwd is not None and self.stream is not None:
+                self.ans(serv, author,
+                         "La retransmission est déjà opérationnelle.")
+                return
+            if self.stream is None:
+                self.stream = subprocess.Popen(["python", self.basepath +
+                                                "/stream.py",
+                                                "/dev/video*"],
+                                               stdout=subprocess.PIPE)
+            if self.oggfwd is None:
+                self.oggfwd = subprocess.Popen([config.oggfwd_path + "/oggfwd",
+                                                config.stream_server,
+                                                config.stream_port,
+                                                config.stream_pass,
+                                                config.stream_mount,
+                                                "-n " + config.stream_name,
+                                                "-d " + config.stream_desc,
+                                                "-u " + config.stream_url,
+                                                "-g " + config.stream_genre],
+                                               stdin=self.stream.stdout)
+            self.ans(serv, author, "Retransmission opérationnelle !")
+        elif args[1] == "off":
+            self.add_history("stream off")
+            if self.stream is not None:
+                self.stream.terminate()
+                self.stream = None
+            if self.oggfwd is not None:
+                self.oggfwd.terminate()
+                self.oggfwd = None
+            self.ans(serv, author, "Retransmission interrompue.")
+        else:
+            raise InvalidArgs
+
+    def close(self):
+        """Exits nicely"""
+        if self.leds is not None:
+            self.leds.terminate()
+
 
 if __name__ == '__main__':
-    JarvisBot().start()
+    try:
+        bot = JarvisBot()
+        bot.start()
+    except:
+        bot.close()
