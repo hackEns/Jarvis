@@ -1,0 +1,31 @@
+# IRC parameters
+server = ""
+port = 6667
+channel = ""
+nick = "jarvis"
+desc = "Jarvis, au rapport !"
+password = ""
+
+# Stream parameters
+stream_server = ""
+stream_port = ""
+stream_pass = ""
+stream_mount = ""
+stream_name = ""
+stream_desc = ""
+stream_url = ""
+stream_genre = ""
+oggfwd_path = ""
+
+# Arduino parameters
+cam_path = "/dev/ttyACM0"
+atx_path = cam_path
+lum_path = "/dev/ttyUSB0"
+
+# Access control
+authorized = []
+admins = []
+
+# Misc
+history_length = 1000
+history_no_doublons = True
