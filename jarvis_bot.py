@@ -8,6 +8,7 @@ from multiprocessing import Process
 import os
 import random
 import subprocess
+import sys
 
 
 class InvalidArgs(Exception):
@@ -311,8 +312,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def update(self, serv, author, args):
         """Handles bot updating"""
-        # TODO
-        pass
+        self.add_history("update")
+        subprocess.Popen([self.basepath + "/updater.sh", self.basepath])
+        self.ans(serv, author, "I will now update myself.")
+        sys.exit()
 
     def tchou_tchou(self, serv):
         """Says tchou tchou"""
