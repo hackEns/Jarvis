@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import config
-import irclib
+from import irc.client import NickMask
 import irc.bot as ircbot
 import jarvis_cmd
 from multiprocessing import Process
@@ -74,13 +74,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
-        if(irclib.nm_to_n(ev.source()).lower() == 'nickserv' and
+        if(NickMask(ev.source()).nick.lower() == 'nickserv' and
            "You are now identified" in ev.arguments()[0]):
             self.nickserved = True
 
     def on_pubmsg(self, serv, ev):
         """Handles the queries on the chan"""
-        author = irclib.nm_to_n(ev.source())
+        author = NickMask(ev.source()).nick
         msg = ev.arguments()[0].strip().lower()
         if msg.startswith('jarvis') and msg[6] in [':', ' ']:
             msg = [i for i in msg[7:].strip(': ').split(' ') if i]
