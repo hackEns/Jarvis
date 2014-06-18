@@ -25,6 +25,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.basepath = os.path.dirname(os.path.realpath(__file__))
         self.history = self.read_history()
         self.leds = None
+        self.current_leds = ""
         self.rules = {}
         self.add_rule("aide", self.aide)
         self.add_rule("alias", self.alias)
@@ -41,6 +42,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("update", self.update)
         self.alias = self.read_alias()
         self.nickserved = False
+        self.camera_pos = "0°"
+        self.atx_status = "off"
         self.stream = subprocess.Popen(["python", self.basepath + "/stream.py",
                                         "/dev/video*"],
                                        stdout=subprocess.PIPE)
@@ -156,7 +159,34 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def info(self, serv, author, args):
         """Prints infos"""
-        # TODO
+        all_items = ['atx', 'leds', 'stream', 'camera']
+        greenc = "\033[92m"
+        redc = "\033[91m"
+        endc = "\033[0m"
+        if len(args) > 1:
+            infos_items = [i for i in args[1:] if i in all_items]
+        else:
+            infos_items = all_items
+        to_say = "Statut : "
+        if 'atx' in infos_items:
+            if self.atx_status == "off":
+                to_say += "ATX : "+redc+"off"+endc+", "
+            else:
+                to_say += "ATX : "+greenc+"on"+endc+", "
+        if 'leds' in infos_items:
+            if self.current_leds is not None and self.leds_alive():
+                to_say += "LEDs : "+self.current_leds+", "
+            else:
+                to_say += "LEDs : "+redc+"off"+endc+", "
+        if 'stream' in infos_items:
+            if self.oggfwd.poll() is None and self.stream.poll() is None:
+                to_say += "Stream : "+greenc+"Actif"+endc+", "
+            else:
+                to_say += "Stream : "+redc+"HS"+endc+", "
+        if 'camera' in infos_items:
+            to_say += "Caméra : "+self.camera_pos+", "
+        to_say = to_say.strip(", ")
+        self.ans(serv, author, to_say)
 
     def camera(self, serv, author, args):
         """Controls camera"""
@@ -166,6 +196,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 raise ValueError
             self.add_history(author, "camera "+str(angle))
             if jarvis_cmd.camera(angle):
+                self.camera_pos = str(angle)+"°"
                 self.ans(serv, author, "Caméra réglée à "+angle+"°.")
             else:
                 self.ans(serv, author, "Je n'arrive pas à régler la caméra.")
@@ -180,6 +211,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 angle = int(matchs[0]["value"])
                 self.add_history(author, "camera "+alias)
                 if jarvis_cmd.camera(angle):
+                    self.camera_pos = args[1]
                     self.ans(serv, author, "Caméra réglée à "+angle+"°.")
                 else:
                     self.ans(serv, author,
@@ -229,6 +261,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     raise ValueError
 
                 self.leds = Process(target=jarvis_cmd.lumiere, args=(R, G, B))
+                self.current_leds = "("+str(R)+", "+str(G)+", "+str(B)+")"
                 self.leds.start()
             except ValueError:
                 raise InvalidArgs
@@ -237,8 +270,18 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             if os.path.isfile(script):
                 self.leds = subprocess.Popen(['python', script],
                                              stdout=subprocess.DEVNULL)
+                self.current_leds = args[1]
         else:
             raise InvalidArgs
+
+    def leds_alive(self):
+        """Returns True if leds process is alive"""
+        if isinstance(self.leds, subprocess.Popen):
+            return self.leds.poll() is None
+        elif isinstance(self.leds, Process):
+            return self.leds.is_alive()
+        else:
+            return False
 
     def dis(self, serv, author, args):
         """Say something"""
@@ -257,8 +300,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if args[1] in ["on", "off"]:
             self.add_history(author, "atx "+args[1])
             if args[1] == "on" and jarvis_cmd.atx(1):
+                self.atx_status = args[1]
                 self.ans(author, "ATX allumée.")
             elif args[1] == "off" and jarvis_cmd.atx(0):
+                self.atx_status = args[1]
                 self.ans(serv, author, "ATX éteinte.")
             else:
                 self.ans(serv, author, "L'ATX est devenue incontrôlable !")
