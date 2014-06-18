@@ -96,7 +96,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         serv.join(config.channel)
         self.connection.execute_delayed(random.randrange(3600, 604800),
                                         self.tchou_tchou)
-        self.say(serv, "Retransmission opérationnelle !")
+        self.say(serv, "Retransmission lancée !")
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
@@ -215,7 +215,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 to_say += "LEDs : "+redc+"off"+endc+", "
         if 'stream' in infos_items:
-            if self.oggfwd.poll() is None and self.stream.poll() is None:
+            if(self.oggfwd is not None and self.stream is not None and
+               self.oggfwd.poll() is None and self.stream.poll() is None):
                 to_say += "Stream : "+greenc+"Actif"+endc+", "
             else:
                 to_say += "Stream : "+redc+"HS"+endc+", "
@@ -427,13 +428,19 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                 "-u " + config.stream_url,
                                                 "-g " + config.stream_genre],
                                                stdin=self.stream.stdout)
-            self.ans(serv, author, "Retransmission opérationnelle !")
+            self.ans(serv, author, "Retransmission lancée !")
         elif args[1] == "off":
             if self.stream is not None:
-                self.stream.terminate()
+                try:
+                    self.stream.terminate()
+                except ProcessLookupError:
+                    pass
                 self.stream = None
             if self.oggfwd is not None:
-                self.oggfwd.terminate()
+                try:
+                    self.oggfwd.terminate()
+                except ProcessLookupError:
+                    pass
                 self.oggfwd = None
             self.ans(serv, author, "Retransmission interrompue.")
         else:
@@ -442,13 +449,22 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def close(self):
         """Exits nicely"""
         if self.leds is not None:
-            self.leds.terminate()
+            try:
+                self.leds.terminate()
+            except ProcessLookupError:
+                pass
             self.leds = None
         if self.stream is not None:
-            self.stream.terminate()
+            try:
+                self.stream.terminate()
+            except ProcessLookupError:
+                pass
             self.stream = None
         if self.oggfwd is not None:
-            self.oggfwd.terminate()
+            try:
+                self.oggfwd.terminate()
+            except ProcessLookupError:
+                pass
             self.oggfwd = None
 
 
