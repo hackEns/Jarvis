@@ -7,6 +7,7 @@ import jarvis_cmd
 from multiprocessing import Process
 import os
 import random
+import subprocess
 
 
 class InvalidArgs(Exception):
@@ -171,8 +172,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def alias(self, serv, author, args):
         """Handles aliases"""
-        # TODO : doublons
         if len(args) > 4 and args[1] == "add":
+            doublons = [i for i in self.alias
+                        if i["type"] == args[2] and i["name"] == args[3]]
+            for d in doublons:
+                self.alias.remove(d)
             self.alias.append({"type": args[2],
                                "name": args[3],
                                "value": args[4]})
@@ -196,6 +200,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def lumiere(self, serv, author, args):
         """Handles light"""
+        if self.leds is not None:
+            self.leds.terminate()
         if len(args) == 4:
             try:
                 R = int(args[1])
@@ -207,20 +213,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                    B > 255 or B < 0):
                     raise ValueError
 
-                target = jarvis_cmd.lumiere
-                args = (R, G, B)
+                self.leds = Process(target=jarvis_cmd.lumiere, args=(R, G, B))
+                self.leds.start()
             except ValueError:
                 raise InvalidArgs
         elif len(args) == 2:
             script = os.path.join(self.basepath+"data/leds", args[1])
             if os.path.isfile(script):
-                target = None  # TODO
-                args = None
+                self.leds = subprocess.Popen(['python', script],
+                                             stdout=subprocess.DEVNULL)
         else:
             raise InvalidArgs
-        if self.leds is not None:
-            self.leds.terminate()
-        self.leds = Process(target=target, args=args)
 
     def dis(self, serv, author, args):
         """Say something"""
