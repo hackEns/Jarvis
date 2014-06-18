@@ -23,7 +23,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
         self.history = self.read_history()
         self.leds = None
-        self.current_leds = ""
+        self.current_leds = "off"
         self.rules = {}
         self.add_rule("aide",
                       self.aide,
@@ -54,7 +54,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="jeu")
         self.add_rule("log",
                       self.log,
-                      help_msg="TODO")
+                      help_msg="log -- TODO")
         self.add_rule("lumiere",
                       self.lumiere,
                       help_msg="lumiere (R G B)|script")
@@ -209,8 +209,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 to_say += "ATX : "+greenc+"on"+endc+", "
         if 'leds' in infos_items:
+            if isinstance(self.leds, subprocess.Popen):
+                poll = self.leds.poll()
+                if poll is not None and poll != 0:
+                    self.leds = None
+                    self.current_leds = "off"
             if self.current_leds is not None:
-                to_say += "LEDs : "+self.current_leds+", "
+                if self.current_leds == "off":
+                    to_say += "LEDs : "+redc+"off"+endc+", "
+                else:
+                    to_say += "LEDs : "+greenc+self.current_leds+endc+", "
             else:
                 to_say += "LEDs : "+redc+"off"+endc+", "
         if 'stream' in infos_items:
@@ -293,6 +301,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             except ProcessLookupError:
                 pass
             self.leds = None
+            self.current_leds = "off"
         if len(args) == 4:
             try:
                 R = int(args[1])
@@ -312,20 +321,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             except ValueError:
                 raise InvalidArgs
         elif len(args) == 2:
-            script = os.path.join(self.basepath+"data/leds", args[1])
+            script = os.path.join(self.basepath+"data/leds", args[1])+".py"
             if os.path.isfile(script):
+                print("ok")
                 self.leds = subprocess.Popen(['python', script],
                                              stdout=subprocess.DEVNULL)
                 self.current_leds = args[1]
         else:
             raise InvalidArgs
-
-    def leds_alive(self):
-        """Returns True if leds process is alive"""
-        if isinstance(self.leds, subprocess.Popen):
-            return self.leds.poll() is None
-        else:
-            return False
 
     def dis(self, serv, author, args):
         """Say something"""
@@ -457,6 +460,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             except ProcessLookupError:
                 pass
             self.leds = None
+            self.current_leds = "off"
         if self.stream is not None:
             try:
                 self.stream.terminate()
