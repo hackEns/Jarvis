@@ -5,15 +5,13 @@ import os
 import sys
 import serial
 import struct
+import subprocess
 
 
 def initSerial(path):
     os.system("stty -hup -F " + path)
     os.system("stty -hup -F " + path)
-    try:
-        return serial.Serial(path, 115200)
-    except:
-        sys.exit("Erreur à l'ouverture du port série.")
+    return serial.Serial(path, 115200)
 
 
 def send(ser, mode, msg):
@@ -29,11 +27,16 @@ def send(ser, mode, msg):
 def camera(angle):
     if angle < 0 or angle > 180:
         print("L'angle doit être entre 0 et 180")
-        raise SystemExit
+        return False
 
     towrite = int(127+int(127*float(angle)/180))
-    ser = initSerial(config.cam_path)
-    send(ser, 1, towrite)
+    try:
+        ser = initSerial(config.cam_path)
+        send(ser, 1, towrite)
+    except (serial.SerialTimeoutException,
+            serial.SerialException):
+        print("Impossible de régler la caméra.")
+        return False
 
 
 def lumiere(r, v, b):
@@ -41,18 +44,37 @@ def lumiere(r, v, b):
     for c in [r, v, b]:
         if c < 0 or c > 255:
             print("La couleur doit être entre 0 et 255")
-            raise SystemExit
+            return False
         else:
             msg.append(int(c/2))
 
-    ser = initSerial(config.lum_path)
-    for j in msg:
-        ser.write(struct.pack("I", j))
+    try:
+        ser = initSerial(config.lum_path)
+        for j in msg:
+            ser.write(struct.pack("I", j))
+    except (serial.SerialTimeoutException,
+            serial.SerialException):
+        print("Impossible de régler la LED.")
+        return False
 
 
 def atx(etat):
-    ser = initSerial(config.atx_path)
-    send(ser, 2, etat)
+    try:
+        ser = initSerial(config.atx_path)
+        send(ser, 2, etat)
+    except (serial.SerialTimeoutException,
+            serial.SerialException):
+        print("Impossible de régler l'ATX.")
+        return False
+
+
+def dis(something):
+    subprocess.call(["espeak",
+                     "-vfrench+m5",
+                     "-p 5",
+                     "-s 50",
+                     "-a 200",
+                     something])
 
 
 if __name__ == '__main__':
@@ -80,18 +102,12 @@ if __name__ == '__main__':
         exit(0)
 
     mode = "dis"
-    import subprocess
     if sys.argv[1] == mode:
         if len(sys.argv) != 3:
             print("Usage %s %s phrase" % (sys.argv[0], mode))
             raise SystemExit
         else:
-            subprocess.call(["espeak",
-                             "-vfrench+m5",
-                             "-p 5",
-                             "-s 50",
-                             "-a 200",
-                             sys.argv[2]])
+            dis(sys.argv[2].strip('"'))
         exit(0)
 
     mode = "atx"

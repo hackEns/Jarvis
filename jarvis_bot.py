@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import config
-from import irc.client import NickMask
 import irc.bot as ircbot
 import jarvis_cmd
 from multiprocessing import Process
@@ -27,19 +26,45 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.leds = None
         self.current_leds = ""
         self.rules = {}
-        self.add_rule("aide", self.aide)
-        self.add_rule("alias", self.alias)
-        self.add_rule("atx", self.atx)
-        self.add_rule("camera", self.camera)
-        self.add_rule("dis", self.dis)
-        self.add_rule("disclaimer", self.disclaimer)
-        self.add_rule("historique", self.historique)
-        self.add_rule("info", self.info)
-        self.add_rule("jeu", self.jeu)
-        self.add_rule("log", self.log)
-        self.add_rule("lumiere", self.lumiere)
-        self.add_rule("stream", self.stream)
-        self.add_rule("update", self.update)
+        self.add_rule("aide",
+                      self.aide,
+                      help_msg="aide [commande]")
+        self.add_rule("alias",
+                      self.alias,
+                      help_msg="alias [categorie]")
+        self.add_rule("atx",
+                      self.atx,
+                      help_msg="atx on|off")
+        self.add_rule("camera",
+                      self.camera,
+                      help_msg="camera ALIAS|ANGLE")
+        self.add_rule("dis",
+                      self.dis,
+                      help_msg="dis \"quelque chose\"")
+        self.add_rule("disclaimer",
+                      self.disclaimer,
+                      help_msg="disclaimer")
+        self.add_rule("historique",
+                      self.historique,
+                      help_msg="historique nb_lignes|(start end)")
+        self.add_rule("info",
+                      self.info,
+                      help_msg="info [atx|camera|leds|stream]")
+        self.add_rule("jeu",
+                      self.jeu,
+                      help_msg="jeu")
+        self.add_rule("log",
+                      self.log,
+                      help_msg="TODO")
+        self.add_rule("lumiere",
+                      self.lumiere,
+                      help_msg="lumiere (R G B)|script")
+        self.add_rule("stream",
+                      self.stream,
+                      help_msg="stream on|off")
+        self.add_rule("update",
+                      self.update,
+                      help_msg="update")
         self.alias = self.read_alias()
         self.nickserved = False
         self.camera_pos = "0°"
@@ -67,28 +92,29 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def on_welcome(self, serv, ev):
         """Upon server connection"""
-        self.privmsg(self, "nickserv", "identify "+config.password)
+        serv.privmsg("nickserv", "identify "+config.password)
         serv.join(config.channel)
-        self.execute_delayed(random.randrange(3600, 604800), self.tchou_tchou)
+        self.connection.execute_delayed(random.randrange(3600, 604800),
+                                        self.tchou_tchou)
         self.say(serv, "Retransmission opérationnelle !")
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
-        if(NickMask(ev.source()).nick.lower() == 'nickserv' and
-           "You are now identified" in ev.arguments()[0]):
+        if(ev.source.nick.lower() == 'nickserv' and
+           "You are now identified" in ev.arguments[0]):
             self.nickserved = True
 
     def on_pubmsg(self, serv, ev):
         """Handles the queries on the chan"""
-        author = NickMask(ev.source()).nick
-        msg = ev.arguments()[0].strip().lower()
-        if msg.startswith('jarvis') and msg[6] in [':', ' ']:
-            msg = [i for i in msg[7:].strip(': ').split(' ') if i]
+        author = ev.source.nick
+        msg = ev.arguments[0].strip().lower().split(':', 1)
+        if msg[0].strip() == self.connection.get_nickname().lower():
+            msg = [i for i in msg[1].strip().split(' ') if i]
             if msg[0] in self.rules:
                 try:
                     self.rules[msg[0]]['action'](serv, author, msg)
                 except InvalidArgs:
-                    self.aide(serv, author, msg[0])
+                    self.aide(serv, author, msg)
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
 
@@ -103,7 +129,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def add_history(self, author, cmd):
         """Adds something to history"""
         insert = {"author": author, "cmd": cmd}
-        if config.history_no_doublons and self.history[-1] != insert:
+        if(config.history_no_doublons and
+           len(self.history) > 0 and
+           self.history[-1] != insert):
             self.history.append(insert)
             while len(self.history) > config.history_length:
                 self.history.popleft()
@@ -151,22 +179,29 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Returns the bot version"""
         return "Jarvis Bot version "+self.version+" by hackEns"
 
-    def aide(self, serv, author, cmd=""):
+    def aide(self, serv, author, args):
         """Prints help"""
-        self.ans(serv, "Jarvis au rapport ! Commandes disponibles :")
-        for rule in self.rules:
-            self.say(serv, self.rules[rule]['help'])
+        self.ans(serv, author, "Jarvis au rapport ! Commandes disponibles :")
+        if len(args) > 1 and args[0] == "aide":
+            self.say(serv, self.rules[args[1]]['help'])
+        elif args[0] != "aide" and args[0] in self.rules:
+            self.say(serv, self.rules[args[0]]['help'])
+        else:
+            for rule in sorted(self.rules):
+                self.say(serv, self.rules[rule]['help'])
 
     def info(self, serv, author, args):
         """Prints infos"""
         all_items = ['atx', 'leds', 'stream', 'camera']
-        greenc = "\033[92m"
-        redc = "\033[91m"
-        endc = "\033[0m"
+        greenc = "\x02\x0303"
+        redc = "\x02\x0304"
+        endc = "\x03\x02"
         if len(args) > 1:
             infos_items = [i for i in args[1:] if i in all_items]
         else:
             infos_items = all_items
+        if len(infos_items) == 0:
+            raise InvalidArgs
         to_say = "Statut : "
         if 'atx' in infos_items:
             if self.atx_status == "off":
@@ -190,6 +225,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def camera(self, serv, author, args):
         """Controls camera"""
+        if len(args) < 2:
+            raise InvalidArgs
         try:
             angle = int(args[1])
             if angle < 0 or angle > 180:
@@ -297,7 +334,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def atx(self, serv, author, args):
         """Handles RepRap ATX"""
-        if args[1] in ["on", "off"]:
+        if len(args) > 1 and args[1] in ["on", "off"]:
             self.add_history(author, "atx "+args[1])
             if args[1] == "on" and jarvis_cmd.atx(1):
                 self.atx_status = args[1]
@@ -345,7 +382,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                  "Prenez donc garde a toujours rester poli avec lui car " +
                  "bien qu'aucune intention malsaine ne lui a été " +
                  "volontairement inculquée,")
-        self.say(serv, author, "JARVIS IS PROVIDED \"AS IS\", WITHOUT " +
+        self.say(serv, "JARVIS IS PROVIDED \"AS IS\", WITHOUT " +
                  "WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT " +
                  "NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS " +
                  "FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.")
@@ -365,7 +402,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def tchou_tchou(self, serv):
         """Says tchou tchou"""
         self.say(serv, "Tchou tchou !")
-        self.execute_delayed(random.randrange(3600, 604800), self.tchou_tchou)
+        self.connection.execute_delayed(random.randrange(3600, 604800),
+                                        self.tchou_tchou)
 
     def stream(self, serv, author, args):
         """Handles stream transmission"""
@@ -408,11 +446,19 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Exits nicely"""
         if self.leds is not None:
             self.leds.terminate()
+            self.leds = None
+        if self.stream is not None:
+            self.stream.terminate()
+            self.stream = None
+        if self.oggfwd is not None:
+            self.oggfwd.terminate()
+            self.oggfwd = None
 
 
 if __name__ == '__main__':
     try:
         bot = JarvisBot()
         bot.start()
-    except:
+    except Exception as e:
         bot.close()
+        raise e

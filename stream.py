@@ -4,13 +4,13 @@
 
 import os, sys
 
-import xmlrpclib
+import xmlrpc.client as xmlrpcclient
 import threading
 import datetime
 
-rpc = xmlrpclib.ServerProxy('http://localhost:7978')
+rpc = xmlrpcclient.ServerProxy('http://localhost:7978')
 
-import cStringIO
+import io
 import matplotlib as mpl
 mpl.use('Agg')
 import pylab
@@ -92,7 +92,7 @@ def make_temp_graph(temp_log):
         for item in ax.get_xticklabels() + ax.get_yticklabels():
             item.set_fontsize(30)
 
-        svg = cStringIO.StringIO()
+        svg = io.StringIO()
         fig.savefig(svg, format = 'svg', bbox_inches = 'tight', pad_inches = 0.1, facecolor = fig.get_facecolor())
     finally:
         pylab.close(fig)
