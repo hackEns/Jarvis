@@ -21,7 +21,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                            config.nick,
                                            config.desc)
         self.version = "0.2"
-        self.basepath = os.path.dirname(os.path.realpath(__file__))
+        self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
         self.history = self.read_history()
         self.leds = None
         self.current_leds = ""
@@ -273,14 +273,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             aliases = [i for i in self.alias if i['type'] == args[1]]
         else:
             aliases = self.alias
-        types = set([i['type'] for i in aliases])
-        for i in types:
-            self.ans(serv, author, "Liste des alias disponibles pour "+i)
-            to_say = ""
-            for j in [k for k in self.alias if k['type'] == i]:
-                to_say += "{"+j['name']+", "+j['value']+"}, "
-            to_say = to_say.strip(", ")
-            self.say(serv, to_say)
+        if len(aliases) > 0:
+            types = set([i['type'] for i in aliases])
+            for i in types:
+                self.ans(serv, author, "Liste des alias disponibles pour "+i+" :")
+                to_say = ""
+                for j in [k for k in self.alias if k['type'] == i]:
+                    to_say += "{"+j['name']+", "+j['value']+"}, "
+                to_say = to_say.strip(", ")
+                self.say(serv, to_say)
+        else:
+            self.ans(serv, author, "Aucun alias défini.")
 
     def lumiere(self, serv, author, args):
         """Handles light"""
@@ -395,7 +398,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def update(self, serv, author, args):
         """Handles bot updating"""
         self.add_history("update")
-        subprocess.Popen([self.basepath + "/updater.sh", self.basepath])
+        subprocess.Popen([self.basepath+"updater.sh", self.basepath])
         self.ans(serv, author, "I will now update myself.")
         sys.exit()
 
