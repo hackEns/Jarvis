@@ -5,21 +5,26 @@ Jarvis
 hackEns multifunction bot
 
 
+Requirements
+------------
+
+ * Python 3
+ * oggfwd
+
+
 Installation
 ------------
 
 Copy `config.py.example` to `config.py` and then edit it.
-config.py should contain the following items:
+`config.py` should contain the following items:
 
  * server = "server"
  * channel = "channel"
  * botnick = "botnick"
  * password = "pass"
 
+Run `jarvis_bot.py`
 
 
-
-Requirements
+Coding Style
 ------------
-
- * oggfwd
