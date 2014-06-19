@@ -6,6 +6,7 @@ import irc.bot as ircbot
 import jarvis_cmd
 import os
 import random
+import re
 import shlex
 import subprocess
 import sys
@@ -47,7 +48,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="disclaimer")
         self.add_rule("emprunt",
                       self.emprunt,
-                      help_msg="emprunt outil \"jj/dd hh\"")
+                      help_msg="emprunt outil \"jj/dd hh\" [email]")
         self.add_rule("historique",
                       self.historique,
                       help_msg="historique nb_lignes|(start end)")
@@ -117,7 +118,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def on_pubmsg(self, serv, ev):
         """Handles the queries on the chan"""
         author = ev.source.nick
-        msg = ev.arguments[0].strip().lower().split(':', 1)
+        msg = ev.arguments[0].strip().lower()
+        urls = re.findall("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
+                          msg)
+        if len(urls) > 0:
+            self.on_links(urls)
+        msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname().lower() and
            (config.authorized == [] or author in config.authorized)):
             msg = shlex.split(msg[1])
@@ -129,6 +135,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     self.aide(serv, author, msg)
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
+
+    def on_links(self, urls):
+        if os.path.isfile(self.basepath+"data/urls.log"):
+            with open(self.basepath+"data/urls.log", 'r') as fh:
+                urls_log = fh.readlines()
+        else:
+            urls_log = []
+        urls_log.extend(urls)
+        with open(self.basepath+"data/urls.log", 'w') as fh:
+            for url in set(urls_log):
+                fh.write(url+"\n")
 
     def ans(self, serv, user, message):
         """Answers to specified user"""
@@ -494,6 +511,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             assert(hour >= 0 and hour < 24)
         except (AssertionError, ValueError):
             raise InvalidArgs
+        if len(args) > 3:
+            borrower = args[3]
+        else:
+            borrower = author
         # TODO : Stockage en base
         def padding(number):
             if number < 10:
