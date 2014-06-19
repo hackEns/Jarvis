@@ -5,6 +5,7 @@ import irc.bot as ircbot
 import jarvis_cmd
 import os
 import random
+import shlex
 import subprocess
 import sys
 
@@ -115,8 +116,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         msg = ev.arguments[0].strip().lower().split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname().lower() and
            (config.authorized == [] or author in config.authorized)):
-            msg = [i for i in msg[1].strip().split(' ') if i]
-            self.add_history(author, " ".join(msg))
+            msg = shlex.split(msg[1])
+            self.add_history(author, msg[1])
             if msg[0] in self.rules:
                 try:
                     self.rules[msg[0]]['action'](serv, author, msg)
@@ -137,12 +138,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Adds something to history"""
         insert = {"author": author, "cmd": cmd}
         if(config.history_no_doublons and
-           (len(self.history) == 0 or
-           self.history[-1] != insert)):
+           (len(self.history) == 0 or self.history[-1] != insert)):
             self.history.append(insert)
             while len(self.history) > config.history_length:
                 self.history.popleft()
-            self.write_history()
+                self.write_history()
 
     def write_history(self):
         write = ''
@@ -253,7 +253,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 self.ans(serv, author, "Je n'arrive pas à régler la caméra.")
         except ValueError:
-            alias = args[1].lower()
+            alias = args[1]
             angle = -1
             matchs = [i for i in self.alias
                       if i["type"] == "camera" and i["name"] == alias]
@@ -290,7 +290,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if len(aliases) > 0:
             types = set([i['type'] for i in aliases])
             for i in types:
-                self.ans(serv, author, "Liste des alias disponibles pour "+i+" :")
+                self.ans(serv, author,
+                         "Liste des alias disponibles pour "+i+" :")
                 to_say = ""
                 for j in [k for k in self.alias if k['type'] == i]:
                     to_say += "{"+j['name']+", "+j['value']+"}, "
@@ -305,7 +306,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             try:
                 if isinstance(self.leds, subprocess.Popen):
                     self.leds.terminate()
-            except ProcessLookupError:
+            except subprocess.ProcessLookupError:
                 pass
             self.leds = None
             self.current_leds = "off"
@@ -340,11 +341,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def dis(self, serv, author, args):
         """Say something"""
         if len(args) > 1:
-            something = " ".join(args[1:]).strip('" ')
-            if jarvis_cmd.dis(something):
-                self.ans(serv, author, something)
-            else:
-                self.ans(serv, author, "Je n'arrive plus à parler…")
+            for something in args[1:]:
+                if jarvis_cmd.dis(something):
+                    self.ans(serv, author, something)
+                else:
+                    self.ans(serv, author, "Je n'arrive plus à parler…")
         else:
             raise InvalidArgs
 
@@ -447,20 +448,20 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             if self.stream is not None:
                 try:
                     self.stream.terminate()
-                except ProcessLookupError:
+                except subprocess.ProcessLookupError:
                     pass
                 self.stream = None
             if self.oggfwd is not None:
                 try:
                     self.oggfwd.terminate()
-                except ProcessLookupError:
+                except subprocess.ProcessLookupError:
                     pass
                 self.oggfwd = None
             self.ans(serv, author, "Retransmission interrompue.")
         else:
             raise InvalidArgs
 
-    def version(self):
+    def version(self, serv, author, args):
         """Prints current version"""
         self.ans(serv, author, self.get_version())
 
@@ -469,20 +470,20 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if self.leds is not None:
             try:
                 self.leds.terminate()
-            except ProcessLookupError:
+            except subprocess.ProcessLookupError:
                 pass
             self.leds = None
             self.current_leds = "off"
         if self.stream is not None:
             try:
                 self.stream.terminate()
-            except ProcessLookupError:
+            except subprocess.ProcessLookupError:
                 pass
             self.stream = None
         if self.oggfwd is not None:
             try:
                 self.oggfwd.terminate()
-            except ProcessLookupError:
+            except subprocess.ProcessLookupError:
                 pass
             self.oggfwd = None
 
