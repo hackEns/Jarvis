@@ -64,6 +64,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("update",
                       self.update,
                       help_msg="update")
+        self.add_rule("version",
+                      self.version,
+                      help_msg="version")
         self.alias = self.read_alias()
         self.nickserved = False
         self.camera_pos = "0°"
@@ -456,6 +459,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.ans(serv, author, "Retransmission interrompue.")
         else:
             raise InvalidArgs
+
+    def version(self):
+        """Prints current version"""
+        self.ans(serv, author, self.get_version())
 
     def close(self):
         """Exits nicely"""
