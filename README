@@ -1,5 +1,25 @@
+
+Jarvis
+======
+
+hackEns multifunction bot
+
+
+Installation
+------------
+
+Copy `config.py.example` to `config.py` and then edit it.
 config.py should contain the following items:
-server = "server"
-channel = "channel"
-botnick = "botnick"
-password = "pass"
+
+ * server = "server"
+ * channel = "channel"
+ * botnick = "botnick"
+ * password = "pass"
+
+
+
+
+Requirements
+------------
+
+ * oggfwd
