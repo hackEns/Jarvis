@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import config
+import datetime
 import irc.bot as ircbot
 import jarvis_cmd
 import os
@@ -44,6 +45,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("disclaimer",
                       self.disclaimer,
                       help_msg="disclaimer")
+        self.add_rule("emprunt",
+                      self.emprunt,
+                      help_msg="emprunt outil \"jj/dd hh\"")
         self.add_rule("historique",
                       self.historique,
                       help_msg="historique nb_lignes|(start end)")
@@ -316,17 +320,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 G = int(args[2])
                 B = int(args[3])
 
-                if(R > 255 or R < 0 or
-                   G > 255 or G < 0 or
-                   B > 255 or B < 0):
-                    raise ValueError
+                assert(R >= 0 and R <= 255)
+                assert(G >= 0 and G <= 255)
+                assert(B >= 0 and B <= 255)
 
                 if jarvis_cmd.lumiere(R, G, B):
                     self.current_leds = "("+str(R)+", "+str(G)+", "+str(B)+")"
                     self.ans(serv, author, "LED réglée sur "+self.current_leds)
                 else:
                     self.ans(serv, author, "Impossible de régler les LEDs.")
-            except ValueError:
+            except (AssertionError, ValueError):
                 raise InvalidArgs
         elif len(args) == 2:
             script = os.path.join(self.basepath+"data/leds", args[1])+".py"
@@ -464,6 +467,42 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def version(self, serv, author, args):
         """Prints current version"""
         self.ans(serv, author, self.get_version())
+
+    def emprunt(self, serv, author, args):
+        """Handles tools borrowings"""
+        if len(args) < 3:
+            raise InvalidArgs
+        this_year = datetime.datetime.now().year
+        tool = args[1]
+        until = args[2].split(" /").strip()
+        try:
+            assert(len(until) > 2)
+            day = int(until[0])
+            month = int(until[1])
+            assert(month > 0 and month < 13)
+            if month % 2 == 1:
+                assert(day > 0 and day <= 31)
+            elif month == 2:
+                if((this_year % 4 == 0 and this_year % 100 != 0) or
+                   this_year % 400 == 0):
+                    assert(day > 0 and day <= 29)
+                else:
+                    assert(day > 0 and day <= 28)
+            else:
+                assert(day > 0 and day <= 30)
+            hour = int(until[2])
+            assert(hour >= 0 and hour < 24)
+        except (AssertionError, ValueError):
+            raise InvalidArgs
+        # TODO : Stockage en base
+        def padding(number):
+            if number < 10:
+                return "0"+str(number)
+            else:
+                return str(number)
+        self.ans(serv, author,
+                 "Emprunt de "+tool+" jusqu'au " +
+                 padding(day)+"/"+padding(month)+" à "+padding(hour)+"h noté.")
 
     def close(self):
         """Exits nicely"""
