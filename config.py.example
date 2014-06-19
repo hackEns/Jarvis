@@ -24,6 +24,7 @@ lum_path = "/dev/ttyUSB0"
 
 # Access control
 authorized = []
+authorized_queries = []
 admins = []
 
 # Misc

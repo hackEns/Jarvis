@@ -102,12 +102,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if(ev.source.nick.lower() == 'nickserv' and
            "You are now identified" in ev.arguments[0]):
             self.nickserved = True
+        if(config.authorized_queries == [] or
+           ev.source.nick in config.authorized_queries):
+            self.on_pubmsg(self, serv, ev)
 
     def on_pubmsg(self, serv, ev):
         """Handles the queries on the chan"""
         author = ev.source.nick
         msg = ev.arguments[0].strip().lower().split(':', 1)
-        if msg[0].strip() == self.connection.get_nickname().lower():
+        if(msg[0].strip() == self.connection.get_nickname().lower() and
+           (config.authorized == [] or author in config.authorized)):
             msg = [i for i in msg[1].strip().split(' ') if i]
             self.add_history(author, " ".join(msg))
             if msg[0] in self.rules:
@@ -401,9 +405,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def update(self, serv, author, args):
         """Handles bot updating"""
-        subprocess.Popen([self.basepath+"updater.sh", self.basepath])
-        self.ans(serv, author, "I will now update myself.")
-        sys.exit()
+        if author in config.admins:
+            subprocess.Popen([self.basepath+"updater.sh", self.basepath])
+            self.ans(serv, author, "I will now update myself.")
+            sys.exit()
 
     def tchou_tchou(self, serv):
         """Says tchou tchou"""
