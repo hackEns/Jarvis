@@ -4,6 +4,7 @@ import config
 import datetime
 import irc.bot as ircbot
 import jarvis_cmd
+import mysql.connector
 import os
 import random
 import re
@@ -23,6 +24,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                            config.nick,
                                            config.desc)
         self.version = "0.2"
+        self.error = None
         self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
         self.history = self.read_history()
         self.leds = None
@@ -77,19 +79,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.nickserved = False
         self.camera_pos = "0°"
         self.atx_status = "off"
-        self.stream = subprocess.Popen(["python", self.basepath + "/stream.py",
-                                        "/dev/video*"],
-                                       stdout=subprocess.PIPE)
-        self.oggfwd = subprocess.Popen([config.oggfwd_path + "/oggfwd",
-                                        config.stream_server,
-                                        config.stream_port,
-                                        config.stream_pass,
-                                        config.stream_mount,
-                                        "-n " + config.stream_name,
-                                        "-d " + config.stream_desc,
-                                        "-u " + config.stream_url,
-                                        "-g " + config.stream_genre],
-                                       stdin=self.stream.stdout)
+        try:
+            self.bdd = mysql.connector.connect(**config.mysql)
+            self.bdd_cursor = self.bdd.cursor()
+        except mysql.connector.Error as err:
+            if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
+                self.error = "Accès refusé à la BDD."
+            elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
+                self.error = "La base MySQL n'existe pas."
+            else:
+                self.error = err
+            self.bdd = None
 
     def add_rule(self, name, action, help_msg=""):
         name = name.lower()
@@ -104,7 +104,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         serv.join(config.channel)
         self.connection.execute_delayed(random.randrange(3600, 604800),
                                         self.tchou_tchou)
-        self.say(serv, "Retransmission lancée !")
+        if self.error is not None:
+            self.say(serv, self.error)
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
@@ -447,23 +448,30 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.ans(serv, author,
                          "La retransmission est déjà opérationnelle.")
                 return
-            if self.stream is None:
-                self.stream = subprocess.Popen(["python", self.basepath +
-                                                "/stream.py",
-                                                "/dev/video*"],
-                                               stdout=subprocess.PIPE)
-            if self.oggfwd is None:
-                self.oggfwd = subprocess.Popen([config.oggfwd_path + "/oggfwd",
-                                                config.stream_server,
-                                                config.stream_port,
-                                                config.stream_pass,
-                                                config.stream_mount,
-                                                "-n " + config.stream_name,
-                                                "-d " + config.stream_desc,
-                                                "-u " + config.stream_url,
-                                                "-g " + config.stream_genre],
-                                               stdin=self.stream.stdout)
-            self.ans(serv, author, "Retransmission lancée !")
+            try:
+                if self.stream is None:
+                    self.stream = subprocess.Popen(["python",
+                                                    self.basepath +
+                                                    "/stream.py",
+                                                    "/dev/video*"],
+                                                   stdout=subprocess.PIPE)
+                if self.oggfwd is None:
+                    self.oggfwd = subprocess.Popen([config.oggfwd_path +
+                                                    "/oggfwd",
+                                                    config.stream_server,
+                                                    config.stream_port,
+                                                    config.stream_pass,
+                                                    config.stream_mount,
+                                                    "-n "+config.stream_name,
+                                                    "-d "+config.stream_desc,
+                                                    "-u "+config.stream_url,
+                                                    "-g "+config.stream_genre],
+                                                   stdin=self.stream.stdout)
+                self.ans(serv, author, "Retransmission lancée !")
+            except (IOError, ValueError):
+                self.ans(serv,
+                         author,
+                         "Impossible de démarrer la retransmission.")
         elif args[1] == "off":
             if self.stream is not None:
                 try:
@@ -489,7 +497,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Handles tools borrowings"""
         if len(args) < 3:
             raise InvalidArgs
-        this_year = datetime.datetime.now().year
+        this_year = datetime.date.now().year
         tool = args[1]
         until = args[2].split(" /").strip()
         try:
@@ -512,10 +520,22 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         except (AssertionError, ValueError):
             raise InvalidArgs
         if len(args) > 3:
-            borrower = args[3]
+            if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
+                        args[3]) is not None:
+                borrower = args[3]
+            else:
+                raise InvalidArgs
         else:
             borrower = author
-        # TODO : Stockage en base
+        if month < datetime.date.now().month:
+            year = this_year + 1
+        else:
+            year = this_year
+        until = datetime.datetime(year, month, day, hour)
+        query = ("INSERT INTO emprunts(id, borrower, tool, until)" +
+                 "VALUES ('', %(borrower)s, %(tool)s, %(until)s)")
+        values = (borrower, tool, until)
+        self.bdd_cursor.execute(query, values)
         def padding(number):
             if number < 10:
                 return "0"+str(number)
@@ -546,6 +566,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             except subprocess.ProcessLookupError:
                 pass
             self.oggfwd = None
+        if self.bdd_cursor is not None:
+            self.bdd_cursor.close()
+        if self.bdd is not None:
+            self.bdd.close()
 
 
 if __name__ == '__main__':
