@@ -2,6 +2,7 @@
 
 import config
 import datetime
+from email.mime.text import MIMEText
 import irc.bot as ircbot
 import jarvis_cmd
 import mysql.connector
@@ -9,6 +10,7 @@ import os
 import random
 import re
 import shlex
+import smtplib
 import subprocess
 import sys
 
@@ -103,7 +105,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         serv.privmsg("nickserv", "identify "+config.password)
         serv.join(config.channel)
         self.connection.execute_delayed(random.randrange(3600, 604800),
-                                        self.tchou_tchou)
+                                        self.tchou_tchou, (serv))
+        self.connection.execute_every(3600, self.notifs_emprunts, (serv))
         if self.error is not None:
             self.say(serv, self.error)
 
@@ -532,10 +535,15 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         else:
             year = this_year
         until = datetime.datetime(year, month, day, hour)
-        query = ("INSERT INTO emprunts(id, borrower, tool, until)" +
-                 "VALUES ('', %(borrower)s, %(tool)s, %(until)s)")
-        values = (borrower, tool, until)
-        self.bdd_cursor.execute(query, values)
+        query = ("INSERT INTO borrowings(id, borrower, tool, from, until)" +
+                 "VALUES ('', %(borrower)s, %(tool)s, %(from)s, %(until)s)")
+        values = (borrower, tool, datetime.datetime.now(), until)
+        try:
+            self.bdd_cursor.execute(query, values)
+            self.bdd.commit()
+        except mysql.connector.errors.Error:
+            serv.ans(serv, author, "Impossible d'ajouter l'emprunt.")
+            return
         def padding(number):
             if number < 10:
                 return "0"+str(number)
@@ -544,6 +552,41 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.ans(serv, author,
                  "Emprunt de "+tool+" jusqu'au " +
                  padding(day)+"/"+padding(month)+" à "+padding(hour)+"h noté.")
+
+    def notifs_emprunts(self, serv):
+        """Notifications when borrowing is over"""
+        now = datetime.datetime.now()
+        1h_later = now + datetime.timedelta(hours=1)
+        query = ("SELECT borrower, tool, from, until FROM borrowings " +
+                 "WHERE until BETWEEN %s AND %s")
+        try:
+            self.bdd_cursor.execute(query, (now, 1h_later))
+        except mysql.connector.errors.Error:
+            serv.say(serv,
+                     "Impossible de récupérer les notifications d'emprunts.")
+            return
+        for (borrower, tool, until) in self.bdd_cursor:
+            notif = ("Tu as emprunté "+tool+" depuis le " +
+                     datetime.strftime("%d/%m/%Y") +
+                     " et tu devais le " +
+                     "rendre aujourd'hui. L'as-tu rendu ?")
+            if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
+                        borrower) is not None:
+                notif = "Salut,\n\n" + notif
+                notif += ("\nPour confirmer le retour, répond à cet e-mail " +
+                          "ou connecte-toi sur IRC (#hackens) pour " +
+                          "le confirmer directement à Jarvis.")
+                msg = MIMEText(notif)
+                msg["Subject"] = "Emprunt en hack'ave"
+                msg["From"] = config.emails_sender
+                msg["to"] = borrower
+
+                s = smtplib.SMTP('localhost')
+                s.sendmail(config.emails_sender, [borrower], msg.as_string())
+            else:
+                serv.privmsg(borrower, notif)
+                serv.privmsg(borrower,
+                             "Pour confirmer le retour, répond-moi \"oui\".")
 
     def close(self):
         """Exits nicely"""

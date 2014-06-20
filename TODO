@@ -1,8 +1,15 @@
 # TODO
 * logs => Elie
 * Beagleboard
-* "jarvis: emprunt outil until" => TODO : notifs
+* "jarvis: emprunt outil until"
+    => TODO :
+        * gestion des retours
+        * pas d'emprunts multiples
+        * l. 559 and co ?
 * budget
 * liste de courses
 * update ?
 * pygst
+
+# À tester
+* Emprunt avec un pseudo inexistant ? => notif donne quoi ?
