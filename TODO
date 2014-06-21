@@ -2,12 +2,12 @@
 * logs => Elie
 * Beagleboard
 * "jarvis: emprunt outil until"
-    => TODO :
-        * gestion des retours
+    * gestion des retours
+    * buggy
 * budget
 * liste de courses
-* update ?
 * pygst
 
 # À tester
 * Emprunt avec un pseudo inexistant ? => notif donne quoi ?
+* update

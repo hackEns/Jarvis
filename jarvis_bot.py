@@ -14,7 +14,6 @@ import shlex
 import smtplib
 import subprocess
 import sys
-from collections import deque # Fifo for log cache
 
 from Rules import *
 
@@ -156,7 +155,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     self.aide(serv, author, msg)
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
-        self.log.add_cache(author, raw_msg) # Log each line
+        self.log.add_cache(author, raw_msg)  # Log each line
 
     def on_links(self, serv, author, urls):
         """Stores links in the shaarli"""
@@ -171,7 +170,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             post = {"url": url,
                     "description": "Posté par "+author+".",
                     "private": 0}
-            r = requests.post(config.shaarli_url, params=base_params, data=post)
+            r = requests.post(config.shaarli_url,
+                              params=base_params, data=post)
             if r.status_code != 200 and r.status_code != 201:
                 self.ans(serv, author,
                          "Impossible d'ajouter le lien à shaarli. " +
@@ -249,6 +249,38 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             return False
         return True
 
+    def add_log_cache(self, author, msg):
+        """Add line to log cache.
+        If cache is full, last line is append to save buffer
+        which is on its turn flushed to disk if full
+        """
+        if len(self.log_cache) >= config.log_cache_size:
+            self.log_cache_to_buffer()
+            if self.log_save_buffer_count > config.log_save_buffer_size:
+                self.log_flush_buffer()
+
+        self.log_cache.appendleft((datetime.datetime.now().hour,
+                                   datetime.datetime.now().minute,
+                                   author,
+                                   msg))
+
+    def log_cache_to_buffer(self):
+        """Pop a line from log cache and append it to save buffer"""
+        t = self.log_cache.pop()
+        self.log_save_buffer += "%d:%d <%s> %s\n" % t
+        self.log_save_buffer_count += 1
+
+    def log_flush_buffer(self):
+        """Flush log save buffer to disk"""
+        with open(config.log_all_file, 'a') as f:
+            f.write(self.log_save_buffer)
+            self.log_save_buffer = ""
+            self.log_save_buffer_count = 0
+
+    def log_flush_all(self):
+        for i in range(len(self.log_cache)):
+            self.log_cache_to_buffer()
+        self.log_flush_buffer()
 
     def aide(self, serv, author, args):
         """Prints help"""
@@ -469,7 +501,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                  "NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS " +
                  "FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.")
 
-
     def update(self, serv, author, args):
         """Handles bot updating"""
         if author in config.admins:
@@ -494,10 +525,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             try:
                 if self.streamh is None:
                     self.streamh = subprocess.Popen(["python",
-                                                    self.basepath +
-                                                    "/stream.py",
-                                                    "/dev/video*"],
-                                                   stdout=subprocess.PIPE)
+                                                     self.basepath +
+                                                     "/stream.py",
+                                                     "/dev/video*"],
+                                                    stdout=subprocess.PIPE)
                 if self.oggfwd is None:
                     self.oggfwd = subprocess.Popen([config.oggfwd_path +
                                                     "/oggfwd",
@@ -600,6 +631,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         except (AssertionError, mysql.connector.errors.Error):
             self.ans(serv, author, "Impossible d'ajouter l'emprunt.")
             return
+
         def padding(number):
             if number < 10:
                 return "0"+str(number)
@@ -662,35 +694,35 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             if r.status_code != requests.codes.ok or r.text == "":
                 if private >= 0:
                     self.ans(serv, author,
-                            "Impossible d'éditer le lien " +
-                            search[1] + ". "
-                            "Status code : "+str(r.status_code))
+                             "Impossible d'éditer le lien " +
+                             search[1] + ". "
+                             "Status code : "+str(r.status_code))
                 else:
                     self.ans(serv, author,
-                            "Impossible de supprimer le lien " +
-                            search[1] + ". "
-                            "Status code : "+str(r.status_code))
+                             "Impossible de supprimer le lien " +
+                             search[1] + ". "
+                             "Status code : "+str(r.status_code))
                 return False
             key = r.json()['linkdate']
             if private >= 0:
                 post = {"url": self.last_added_link, "private": private}
                 r = requests.post(config.shaarli_url,
-                                params=base_params + (("key", key),),
-                                data=post)
+                                  params=base_params + (("key", key),),
+                                  data=post)
             else:
                 r = requests.delete(config.shaarli_url,
                                     params=base_params + (("key", key),))
             if r.status_code != 200:
                 if private >= 0:
                     self.ans(serv, author,
-                            "Impossible d'éditer le lien " +
-                            search[1] + ". "
-                            "Status code : "+str(r.status_code))
+                             "Impossible d'éditer le lien " +
+                             search[1] + ". "
+                             "Status code : "+str(r.status_code))
                 else:
                     self.ans(serv, author,
-                            "Impossible de supprimer le lien " +
-                            search[1] + ". "
-                            "Status code : "+str(r.status_code))
+                             "Impossible de supprimer le lien " +
+                             search[1] + ". "
+                             "Status code : "+str(r.status_code))
                 return False
 
         if len(args) > 1 and (args[1] in ["ignore", "affiche", "supprime"]):
@@ -705,7 +737,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 private = -1
             ok = False
             if len(args) == 2:
-                if edit_link(("url", self.last_added_link), private) is not False:
+                if edit_link(("url", self.last_added_link),
+                             private) is not False:
                     ok = True
             else:
                 for arg in args[2:]:
@@ -713,7 +746,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         small_hash = arg.split('?')[-1]
                     else:
                         small_hash = arg
-                    if edit_link(("hash", small_hash), private) is not False and ok is False:
+                    if(edit_link(("hash", small_hash), private) is not False
+                       and ok is False):
                         ok = True
             if ok:
                 self.ans(serv, author, msg)
@@ -754,8 +788,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.close()
 
 if __name__ == '__main__':
-    with JarvisBot() as bot:
-        bot.start()
-
-
-
+    try:
+        with JarvisBot() as bot:
+            bot.start()
+    except Exception as e:
+        bot.close()
+        raise e
