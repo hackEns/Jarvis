@@ -15,7 +15,6 @@ import smtplib
 import subprocess
 import sys
 from collections import deque # Fifo for log cache
-from datetime import datetime
 
 
 class InvalidArgs(Exception):
@@ -28,7 +27,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                    config.port)],
                                            config.nick,
                                            config.desc)
-        self.version = "0.2"
+        self.version_nb = "0.2"
         self.error = None
         self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
         self.history = self.read_history()
@@ -148,7 +147,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                           msg)
         if len(urls) > 0:
             self.on_links(serv, author, urls)
-        
+
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname().lower() and
            (config.authorized == [] or author in config.authorized)):
@@ -237,11 +236,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def get_version(self):
         """Returns the bot version"""
         return (config.nick + "Bot version " +
-                self.version + " by " + config.author)
+                self.version_nb + " by " + config.author)
 
     def has_admin_rights(self, serv, author):
         """Checks that author is in admin users"""
-        if len(config.admin) > 0 and author not in config.admin:
+        if len(config.admins) > 0 and author not in config.admins:
             self.ans(serv, author,
                      "Vous n'avez pas l'autorisation d'accéder à cette " +
                      "commande.")
@@ -255,12 +254,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             if self.log_save_buffer_count > config.log_save_buffer_size:
                 self.log_flush_buffer()
 
-        self.log_cache.appendleft((datetime.now().hour, datetime.now().minute, author, msg))
+        self.log_cache.appendleft((datetime.datetime.now().hour, datetime.datetime.now().minute, author, msg))
 
     def log_cache_to_buffer(self):
         """Pop a line from log cache and append it to save buffer"""
         t = self.log_cache.pop()
-        print(t)
         self.log_save_buffer += "%d:%d <%s> %s\n" % t
         self.log_save_buffer_count += 1
 
@@ -420,7 +418,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         elif len(args) == 2:
             script = os.path.join(self.basepath+"data/leds", args[1])+".py"
             if os.path.isfile(script):
-                print("ok")
                 self.leds = subprocess.Popen(['python', script],
                                              stdout=subprocess.DEVNULL)
                 self.current_leds = args[1]
@@ -522,7 +519,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.ans(serv, author, "Loggé !")
         else:
             self.ans(serv, author, "Je n'ai pas trouvé")
-            print("pas trouvé", found_end, found_start)
 
 
 
@@ -596,9 +592,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Handles tools borrowings"""
         if len(args) < 3:
             raise InvalidArgs
-        this_year = datetime.date.now().year
+        this_year = datetime.date.today().year
         tool = args[1]
-        until = args[2].split(" /").strip()
+        until = [i.strip() for i in args[2].split(" /")]
         try:
             assert(len(until) > 2)
             day = int(until[0])
@@ -714,7 +710,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 if r.status_code != 200:
                     self.ans(serv, author,
                              "Impossible d'éditer le lien " +
-                             self.last_added_link+". "
+                             self.last_added_link + ". "
                              "Status code : "+str(r.status_code))
                     return
             else:
@@ -727,7 +723,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     r = requests.get(config.shaarli_url,
                                      params=params)
                     del(params["hash"])
-                    if r.status_code != requests.code.ok:
+                    if r.status_code != requests.codes.ok:
                         self.ans(serv, author,
                                  "Impossible d'éditer le lien "+arg+". " +
                                  "Status code : "+str(r.status_code))
@@ -750,10 +746,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 r = requests.get(config.shaarli_url,
                                  params=params)
                 del(params["url"])
-                if r.status_code != requests.code.ok:
+                if r.status_code != requests.codes.ok:
                     self.ans(serv, author,
                              "Impossible de supprimer le lien " +
-                             arg + ". " +
+                             self.last_added_link + ". " +
                              "Status code : "+str(r.status_code))
                     return
                 params["key"] = r.json()["key"]
@@ -777,7 +773,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     r = requests.get(config.shaarli_url,
                                      params=params)
                     del(params["hash"])
-                    if r.status_code != requests.code.ok:
+                    if r.status_code != requests.codes.ok:
                         self.ans(serv, author,
                                  "Impossible de supprimer le lien " +
                                  arg + ". " +
@@ -806,7 +802,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 r = requests.post(config.shaarli_url,
                                   params=params,
                                   data=post)
-                if r.status_code != requests.code.ok:
+                if r.status_code != requests.codes.ok:
                     self.ans(serv, author,
                              "Impossible d'éditer le lien "+arg+". " +
                              "Status code : "+str(r.status_code))
