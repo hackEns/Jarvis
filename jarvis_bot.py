@@ -771,6 +771,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def __exit__(self, type, value, traceback):
         self.close()
+        return True
 
 if __name__ == '__main__':
     with JarvisBot() as bot:
