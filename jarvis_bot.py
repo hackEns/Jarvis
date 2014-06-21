@@ -9,6 +9,7 @@ import mysql.connector
 import os
 import random
 import re
+import requests
 import shlex
 import smtplib
 import subprocess
@@ -81,6 +82,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.nickserved = False
         self.camera_pos = "0°"
         self.atx_status = "off"
+        self.last_added_link = ""
         try:
             self.bdd = mysql.connector.connect(**config.mysql)
             self.bdd_cursor = self.bdd.cursor()
@@ -126,7 +128,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         urls = re.findall("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
                           msg)
         if len(urls) > 0:
-            self.on_links(urls)
+            self.on_links(serv, author, urls)
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname().lower() and
            (config.authorized == [] or author in config.authorized)):
@@ -140,16 +142,19 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
 
-    def on_links(self, urls):
-        if os.path.isfile(self.basepath+"data/urls.log"):
-            with open(self.basepath+"data/urls.log", 'r') as fh:
-                urls_log = fh.readlines()
-        else:
-            urls_log = []
-        urls_log.extend(urls)
-        with open(self.basepath+"data/urls.log", 'w') as fh:
-            for url in set(urls_log):
-                fh.write(url+"\n")
+    def on_links(self, serv, author, urls):
+        for url in set(urls):
+            params = {"do": "api", "token": config.shaarli_token}
+            post = {"url": url,
+                    "description": "Posté par "+author+".",
+                    "private": 0}
+            r = requests.post(config.shaarli_url, params=params, data=post)
+            if r.status_code != 200 and r.status_code != 201:
+                self.ans(serv, author,
+                         "Impossible d'ajouter le lien à shaarli. " +
+                         "Status code : "+str(r.status_code))
+            else:
+                self.last_added_link = url
 
     def ans(self, serv, user, message):
         """Answers to specified user"""
@@ -535,20 +540,20 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         else:
             year = this_year
         until = datetime.datetime(year, month, day, hour)
-        query = ("INSERT INTO borrowings"+
+        query = ("INSERT INTO borrowings" +
                  "(id, borrower, tool, from, until, back)" +
                  "VALUES ('', %s, %s, %s, %s, %s)")
         values = (borrower, tool, datetime.datetime.now(), until, 0)
         try:
-            self.bdd_cursor.execute("SELECT id, borrower, tool, from, until, "+
-                                    "back FROM borrowings " +
+            self.bdd_cursor.execute("SELECT id, borrower, tool, from, " +
+                                    "until, back FROM borrowings " +
                                     "WHERE back=0 AND borrower=%s AND tool=%s",
                                     (borrower, tool))
             if len(self.bdd_cursor) > 0:
                 self.ans(serv,
                          author,
                          "Il y a déjà un emprunt en cours, mise à jour.")
-                query = ("UPDATE borrowings"+
+                query = ("UPDATE borrowings" +
                          "(id, borrower, tool, from, until, back)" +
                          "SET until=%s " +
                          "WHERE back=0 AND borrower=%s AND tool=%s")
@@ -570,11 +575,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def notifs_emprunts(self, serv):
         """Notifications when borrowing is over"""
         now = datetime.datetime.now()
-        1h_later = now + datetime.timedelta(hours=1)
+        later_1h = now + datetime.timedelta(hours=1)
         query = ("SELECT borrower, tool, from, until, back FROM borrowings " +
                  "WHERE until BETWEEN %s AND %s AND back=0")
         try:
-            self.bdd_cursor.execute(query, (now, 1h_later))
+            self.bdd_cursor.execute(query, (now, later_1h))
         except mysql.connector.errors.Error:
             serv.say(serv,
                      "Impossible de récupérer les notifications d'emprunts.")

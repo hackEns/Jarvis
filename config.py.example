@@ -15,6 +15,10 @@ mysql = {
     "raise_on_warnings": True
 }
 
+# Shaarli
+shaarli_url = ""
+shaarli_token = ""
+
 # Stream parameters
 stream_server = ""
 stream_port = ""
