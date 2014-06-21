@@ -17,9 +17,7 @@ import sys
 from collections import deque # Fifo for log cache
 from datetime import datetime
 
-
-class InvalidArgs(Exception):
-    pass
+from Rules import *
 
 
 class JarvisBot(ircbot.SingleServerIRCBot):
@@ -34,6 +32,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.history = self.read_history()
         self.leds = None
         self.current_leds = "off"
+
+        self.log = Log(self, config)
+
         self.rules = {}
         self.add_rule("aide",
                       self.aide,
@@ -89,11 +90,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.camera_pos = "0°"
         self.atx_status = "off"
         self.last_added_link = ""
-
-        # Init Log
-        self.log_cache = deque("", config.log_cache_size)
-        self.log_save_buffer = ""
-        self.log_save_buffer_count = 0
 
         # Init stream
         self.streamh = None
@@ -162,7 +158,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
 
-        self.add_log_cache(author, raw_msg) # Log each line
+        self.log.add_cache(author, raw_msg) # Log each line
 
     def on_links(self, serv, author, urls):
         for url in set(urls):
@@ -247,34 +243,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                      "commande.")
             return False
         return True
-
-    def add_log_cache(self, author, msg):
-        """Add line to log cache. If cache is full, last line is append to save buffer which is on its turn flushed to disk if full"""
-        if len(self.log_cache) >= config.log_cache_size:
-            self.log_cache_to_buffer()
-            if self.log_save_buffer_count > config.log_save_buffer_size:
-                self.log_flush_buffer()
-
-        self.log_cache.appendleft((datetime.now().hour, datetime.now().minute, author, msg))
-
-    def log_cache_to_buffer(self):
-        """Pop a line from log cache and append it to save buffer"""
-        t = self.log_cache.pop()
-        print(t)
-        self.log_save_buffer += "%d:%d <%s> %s\n" % t
-        self.log_save_buffer_count += 1
-
-    def log_flush_buffer(self):
-        """Flush log save buffer to disk"""
-        with open(config.log_all_file, 'a') as f:
-            f.write(self.log_save_buffer)
-            self.log_save_buffer = ""
-            self.log_save_buffer_count = 0
-
-    def log_flush_all(self):
-        for i in range(len(self.log_cache)):
-            self.log_cache_to_buffer()
-        self.log_flush_buffer()
 
     def aide(self, serv, author, args):
         """Prints help"""
@@ -490,41 +458,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                  "WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT " +
                  "NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS " +
                  "FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.")
-
-    def log(self, serv, author, args):
-        """Handles logging"""
-        if len(args) != 4 or args[2] != '...':
-            raise InvalidArgs
-
-        tmp = []
-        start = args[1]
-        end = args[3]
-        found_end = False
-        found_start = False
-        for (h, m, auth, msg) in self.log_cache:
-            end_index = msg.rfind(end)
-            if not found_end and end_index >= 0:
-                msg = msg[:end_index + len(end)]
-                found_end = True
-            if found_end:
-                start_index = msg.find(start)
-                if start_index >= 0:
-                    msg = msg[start_index:]
-                    tmp.append((h, m, auth, msg))
-                    found_start = True
-                    break
-                tmp.append((h, m, auth, msg))
-
-        if found_start:
-            with open(config.log_file, 'a') as f:
-                for i in range(len(tmp)):
-                    f.write("%d:%d <%s> %s\n" % tmp.pop())
-            self.ans(serv, author, "Loggé !")
-        else:
-            self.ans(serv, author, "Je n'ai pas trouvé")
-            print("pas trouvé", found_end, found_start)
-
-
 
 
     def update(self, serv, author, args):
@@ -849,13 +782,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.bdd_cursor.close()
         if self.bdd is not None:
             self.bdd.close()
-        self.log_flush_all()
+        self.log.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
 
 if __name__ == '__main__':
-    try:
-        bot = JarvisBot()
+    with JarvisBot() as bot:
         bot.start()
-    except Exception as e:
-        bot.close()
-        raise e
+
+
+
