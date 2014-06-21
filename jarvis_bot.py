@@ -409,7 +409,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def historique(self, serv, author, args):
         """Handles history"""
         try:
-            if(len(args) == 3 and
+            if(len(args) == 4 and
                int(args[2]) < len(self.history) and
                int(args[3]) < len(self.history)):
                 start = int(args[2])
