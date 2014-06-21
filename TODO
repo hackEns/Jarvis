@@ -8,7 +8,6 @@
 * liste de courses
 * update ?
 * pygst
-* liens => ajout multiple, ignore / supprime / affiche, ignorer certains liens auto
 
 # À tester
 * Emprunt avec un pseudo inexistant ? => notif donne quoi ?
