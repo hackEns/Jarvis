@@ -641,7 +641,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "Impossible d'éditer le lien " +
                              self.last_added_link+". "
                              "Status code : "+str(r.status_code))
-                    continue
+                    return
             else:
                 for arg in args[2:]:
                     if arg.startswith(config.shaarli_url):
@@ -680,7 +680,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "Impossible de supprimer le lien " +
                              arg + ". " +
                              "Status code : "+str(r.status_code))
-                    continue
+                   return
                 params["key"] = r.json()["key"]
                 r = requests.delete(config.shaarli_url,
                                     params=params)
@@ -690,7 +690,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "Impossible de supprimer le lien " +
                              self.last_added_link+". "
                              "Status code : "+str(r.status_code))
-                    continue
+                   return
                 self.ans(serv, author, "Liens supprimés.")
             else:
                 for arg in args[2:]:
