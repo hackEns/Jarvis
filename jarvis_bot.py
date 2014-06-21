@@ -773,9 +773,5 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.close()
 
 if __name__ == '__main__':
-    try:
-        with JarvisBot() as bot:
-            bot.start()
-    except Exception as e:
-        bot.close()
-        raise e
+    with JarvisBot() as bot:
+        bot.start()
