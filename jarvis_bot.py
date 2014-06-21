@@ -33,6 +33,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
         self.log = Log(self, config)
         self.atx = Atx(self, config, jarvis_cmd)
+        self.alias = Alias(self, config, self.basepath)
 
         self.rules = {}
         self.add_rule("aide",
@@ -84,7 +85,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("version",
                       self.version,
                       help_msg="version")
-        self.alias = self.read_alias()
+
         self.nickserved = False
         self.camera_pos = "0°"
         self.last_added_link = ""
@@ -213,28 +214,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     history.append({'author': line[0], 'cmd': line[1]})
         return history
 
-    def write_alias(self):
-        write = {}
-        for item in self.alias:
-            try:
-                write[item["type"]] += item["name"]+":"+item["value"]+"\n"
-            except KeyError:
-                write[item["type"]] = item["name"]+":"+item["value"]+"\n"
-        for type in write:
-            with open(self.basepath+"data/"+type+".alias", "w+") as fh:
-                fh.write(write)
-
-    def read_alias(self):
-        alias = []
-        if os.path.isfile(self.basepath+"data/camera.alias"):
-            with open(self.basepath+"data/camera.alias", 'r') as fh:
-                for line in fh.readlines():
-                    line = [i.strip() for i in line.split(':')]
-                    alias.append({"type": "camera",
-                                  "name": line[0],
-                                  "value": line[1]})
-        return sorted(alias, key=lambda k: k['type'])
-
     def get_version(self):
         """Returns the bot version"""
         return (config.nick + "Bot version " +
@@ -354,7 +333,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         except ValueError:
             alias = args[1]
             angle = -1
-            matchs = [i for i in self.alias
+            matchs = [i for i in self.alias.aliases
                       if i["type"] == "camera" and i["name"] == alias]
             if len(matchs) == 0:
                 raise InvalidArgs
@@ -367,38 +346,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     self.ans(serv, author,
                              "Je n'arrive pas à régler la caméra.")
 
-    def alias(self, serv, author, args):
-        """Handles aliases"""
-        args = [i.lower() for i in args]
-        if len(args) > 4 and args[1] == "add":
-            doublons = [i for i in self.alias
-                        if i["type"] == args[2] and i["name"] == args[3]]
-            for d in doublons:
-                self.alias.remove(d)
-            self.alias.append({"type": args[2],
-                               "name": args[3],
-                               "value": args[4]})
-            self.write_alias()
-            self.ans(serv, author,
-                     "Nouvel alias ajouté : " +
-                     "{"+args[2]+", "+args[3]+", "+args[4]+"}")
-            return
-        elif len(args) > 1:
-            aliases = [i for i in self.alias if i['type'] == args[1]]
-        else:
-            aliases = self.alias
-        if len(aliases) > 0:
-            types = set([i['type'] for i in aliases])
-            for i in types:
-                self.ans(serv, author,
-                         "Liste des alias disponibles pour "+i+" :")
-                to_say = ""
-                for j in [k for k in self.alias if k['type'] == i]:
-                    to_say += "{"+j['name']+", "+j['value']+"}, "
-                to_say = to_say.strip(", ")
-                self.say(serv, to_say)
-        else:
-            self.ans(serv, author, "Aucun alias défini.")
 
     def lumiere(self, serv, author, args):
         """Handles light"""
@@ -771,7 +718,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def __exit__(self, type, value, traceback):
         self.close()
-        return True
+        print("Bye!")
+        return not config.debug
 
 if __name__ == '__main__':
     with JarvisBot() as bot:

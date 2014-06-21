@@ -52,3 +52,4 @@ history_length = 1000
 history_no_doublons = True
 history_lines_to_show = 5
 emails_sender = "user@example.org"
+debug = False
