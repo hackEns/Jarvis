@@ -119,9 +119,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         serv.privmsg("nickserv", "identify "+config.password)
         serv.join(config.channel)
 
-        #self.connection.execute_delayed(random.randrange(3600, 604800),
-        #                                self.tchou_tchou, (serv))
-        #self.connection.execute_every(3600, self.notifs_emprunts, (serv))
+        self.connection.execute_delayed(random.randrange(3600, 604800),
+                                        self.tchou_tchou, (serv,))
+        self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
         if self.error is not None:
             self.say(serv, self.error)
 
@@ -143,7 +143,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                           msg)
         if len(urls) > 0:
             self.on_links(serv, author, urls)
-
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname().lower() and
            (config.authorized == [] or author in config.authorized)):
@@ -156,11 +155,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     self.aide(serv, author, msg)
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
-
         self.log.add_cache(author, raw_msg) # Log each line
 
     def on_links(self, serv, author, urls):
+        """Stores links in the shaarli"""
         for url in set(urls):
+            if url.startswith(config.shaarli_url):
+                continue
             params = (("do", "api"), ("token", config.shaarli_key))
             post = {"url": url,
                     "description": "Posté par "+author+".",
@@ -530,7 +531,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             raise InvalidArgs
         this_year = datetime.date.today().year
         tool = args[1]
-        until = [i.strip() for i in args[2].split(" /")]
+        until = [i.strip() for i in args[2].replace('/', ' ').split(" ")]
         try:
             assert(len(until) > 2)
             day = int(until[0])
@@ -558,7 +559,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 raise InvalidArgs
         else:
             borrower = author
-        if month < datetime.date.now().month:
+        if month < datetime.date.today().month:
             year = this_year + 1
         else:
             year = this_year
@@ -568,6 +569,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                  "VALUES ('', %s, %s, %s, %s, %s)")
         values = (borrower, tool, datetime.datetime.now(), until, 0)
         try:
+            assert(self.bdd_cursor is not None)
             self.bdd_cursor.execute("SELECT id, borrower, tool, from, " +
                                     "until, back FROM borrowings " +
                                     "WHERE back=0 AND borrower=%s AND tool=%s",
@@ -583,8 +585,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 values = (until, borrower, tool)
             self.bdd_cursor.execute(query, values)
             self.bdd.commit()
-        except mysql.connector.errors.Error:
-            serv.ans(serv, author, "Impossible d'ajouter l'emprunt.")
+        except (AssertionError, mysql.connector.errors.Error):
+            self.ans(serv, author, "Impossible d'ajouter l'emprunt.")
             return
         def padding(number):
             if number < 10:
@@ -602,8 +604,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         query = ("SELECT borrower, tool, from, until, back FROM borrowings " +
                  "WHERE until BETWEEN %s AND %s AND back=0")
         try:
+            assert(self.bdd_cursor is not None)
             self.bdd_cursor.execute(query, (now, later_1h))
-        except mysql.connector.errors.Error:
+        except (AssertionError, mysql.connector.errors.Error):
             serv.say(serv,
                      "Impossible de récupérer les notifications d'emprunts.")
             return
