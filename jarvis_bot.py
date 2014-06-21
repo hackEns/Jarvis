@@ -87,6 +87,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.camera_pos = "0°"
         self.atx_status = "off"
         self.last_added_link = ""
+        self.streamh = None
+        self.oggfwd = None
         try:
             self.bdd = mysql.connector.connect(**config.mysql)
             self.bdd_cursor = self.bdd.cursor()
@@ -273,8 +275,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 to_say += "LEDs : "+redc+"off"+endc+", "
         if 'stream' in infos_items:
-            if(self.oggfwd is not None and self.stream is not None and
-               self.oggfwd.poll() is None and self.stream.poll() is None):
+            if(self.oggfwd is not None and self.streamh is not None and
+               self.oggfwd.poll() is None and self.streamh.poll() is None):
                 to_say += "Stream : "+greenc+"Actif"+endc+", "
             else:
                 to_say += "Stream : "+redc+"HS"+endc+", "
@@ -350,7 +352,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             try:
                 if isinstance(self.leds, subprocess.Popen):
                     self.leds.terminate()
-            except subprocess.ProcessLookupError:
+            except ProcessLookupError:
                 pass
             self.leds = None
             self.current_leds = "off"
@@ -466,13 +468,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def stream(self, serv, author, args):
         """Handles stream transmission"""
         if args[1] == "on":
-            if self.oggfwd is not None and self.stream is not None:
+            if self.oggfwd is not None and self.streamh is not None:
                 self.ans(serv, author,
                          "La retransmission est déjà opérationnelle.")
                 return
             try:
-                if self.stream is None:
-                    self.stream = subprocess.Popen(["python",
+                if self.streamh is None:
+                    self.streamh = subprocess.Popen(["python",
                                                     self.basepath +
                                                     "/stream.py",
                                                     "/dev/video*"],
@@ -488,23 +490,23 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                     "-d "+config.stream_desc,
                                                     "-u "+config.stream_url,
                                                     "-g "+config.stream_genre],
-                                                   stdin=self.stream.stdout)
+                                                   stdin=self.streamh.stdout)
                 self.ans(serv, author, "Retransmission lancée !")
             except (IOError, ValueError):
                 self.ans(serv,
                          author,
                          "Impossible de démarrer la retransmission.")
         elif args[1] == "off":
-            if self.stream is not None:
+            if self.streamh is not None:
                 try:
-                    self.stream.terminate()
-                except subprocess.ProcessLookupError:
+                    self.streamh.terminate()
+                except ProcessLookupError:
                     pass
-                self.stream = None
+                self.streamh = None
             if self.oggfwd is not None:
                 try:
                     self.oggfwd.terminate()
-                except subprocess.ProcessLookupError:
+                except ProcessLookupError:
                     pass
                 self.oggfwd = None
             self.ans(serv, author, "Retransmission interrompue.")
@@ -752,20 +754,20 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if self.leds is not None:
             try:
                 self.leds.terminate()
-            except subprocess.ProcessLookupError:
+            except ProcessLookupError:
                 pass
             self.leds = None
             self.current_leds = "off"
-        if self.stream is not None:
+        if self.streamh is not None:
             try:
-                self.stream.terminate()
-            except subprocess.ProcessLookupError:
+                self.streamh.terminate()
+            except ProcessLookupError:
                 pass
-            self.stream = None
+            self.streamh = None
         if self.oggfwd is not None:
             try:
                 self.oggfwd.terminate()
-            except subprocess.ProcessLookupError:
+            except ProcessLookupError:
                 pass
             self.oggfwd = None
         if self.bdd_cursor is not None:
