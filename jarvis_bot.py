@@ -63,6 +63,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("jeu",
                       self.jeu,
                       help_msg="jeu")
+        self.add_rule("lien",
+                      self.lien,
+                      help_msg=("lien (dernier | " +
+                                "(supprime|ignore|affiche) [id|permalien] | "))
         self.add_rule("log",
                       self.log,
                       help_msg="log -- TODO")
@@ -144,7 +148,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def on_links(self, serv, author, urls):
         for url in set(urls):
-            params = {"do": "api", "token": config.shaarli_token}
+            params = {"do": "api", "key": config.shaarli_key}
             post = {"url": url,
                     "description": "Posté par "+author+".",
                     "private": 0}
@@ -214,7 +218,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def get_version(self):
         """Returns the bot version"""
-        return config.nick + "Bot version " + self.version + " by " + config.author
+        return (config.nick + "Bot version " +
+                self.version + " by " + config.author)
+
+    def has_admin_rights(self, serv, author):
+        """Checks that author is in admin users"""
+        if len(config.admin) > 0 and author not in config.admin:
+            self.ans(serv, author,
+                     "Vous n'avez pas l'autorisation d'accéder à cette " +
+                     "commande.")
+            return False
+        return True
 
     def aide(self, serv, author, args):
         """Prints help"""
@@ -606,6 +620,132 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 serv.privmsg(borrower, notif)
                 serv.privmsg(borrower,
                              "Pour confirmer le retour, répond-moi \"oui\".")
+
+    def lien(self, serv, author, args):
+        """Handles links managements through Shaarli API"""
+        params = {"do": "api", "key": config.shaarli_key}
+        if len(args) > 1 and args[1] == "dernier":
+            self.ans(serv, author, self.last_added_link)
+        elif len(args) > 1 and args[1] == "ignore":
+            if not self.has_admin_rights(serv, author):
+                return
+            if len(args) == 2:
+                post = {"url": self.last_added_link, "private": 1}
+                r = requests.post(config.shaarli_url,
+                                  params=params,
+                                  data=post)
+                if r.status_code != 200:
+                    self.ans(serv, author,
+                             "Impossible d'éditer le lien " +
+                             self.last_added_link+". "
+                             "Status code : "+str(r.status_code))
+                    continue
+            else:
+                for arg in args[2:]:
+                    if arg.startswith(config.shaarli_url):
+                        small_hash = arg.split('?')[-1]
+                    else:
+                        small_hash = arg
+                    params["hash"] = small_hash
+                    r = requests.get(config.shaarli_url,
+                                     params=params)
+                    del(params["hash"])
+                    if r.status_code != requests.code.ok:
+                        self.ans(serv, author,
+                                 "Impossible d'éditer le lien "+arg+". " +
+                                 "Status code : "+str(r.status_code))
+                        continue
+                    post = {"url": r.json['url'], "private": 1}
+                    r = requests.post(config.shaarli_url,
+                                      params=params,
+                                      data=post)
+                    if r.status_code != 200:
+                        self.ans(serv, author,
+                                 "Impossible d'éditer le lien "+arg+". " +
+                                 "Status code : "+str(r.status_code))
+                        continue
+                self.ans(serv, author, "Liens rendus publics.")
+        elif len(args) > 1 and args[1] == "supprime":
+            if not self.has_admin_rights(serv, author):
+                return
+            if len(args) == 2:
+                params["url"] = self.last_added_link
+                r = requests.get(config.shaarli_url,
+                                 params=params)
+                del(params["url"])
+                if r.status_code != requests.code.ok:
+                    self.ans(serv, author,
+                             "Impossible de supprimer le lien " +
+                             arg + ". " +
+                             "Status code : "+str(r.status_code))
+                    continue
+                params["key"] = r.json()["key"]
+                r = requests.delete(config.shaarli_url,
+                                    params=params)
+                del(params["key"])
+                if r.status_code != 200:
+                    self.ans(serv, author,
+                             "Impossible de supprimer le lien " +
+                             self.last_added_link+". "
+                             "Status code : "+str(r.status_code))
+                    continue
+                self.ans(serv, author, "Liens supprimés.")
+            else:
+                for arg in args[2:]:
+                    if arg.startswith(config.shaarli_url):
+                        small_hash = arg.split('?')[-1]
+                    else:
+                        small_hash = arg
+                    params["hash"] = small_hash
+                    r = requests.get(config.shaarli_url,
+                                     params=params)
+                    del(params["hash"])
+                    if r.status_code != requests.code.ok:
+                        self.ans(serv, author,
+                                 "Impossible de supprimer le lien " +
+                                 arg + ". " +
+                                 "Status code : "+str(r.status_code))
+                        continue
+                    params["key"] = r.json()["key"]
+                    r = requests.delete(config.shaarli_url,
+                                        params=params)
+                    del(params["key"])
+                    if r.status_code != 200:
+                        self.ans(serv, author,
+                                 "Impossible de supprimer le lien " +
+                                 arg + ". " +
+                                 "Status code : "+str(r.status_code))
+                        continue
+                self.ans(serv, author, "Liens supprimés.")
+        elif len(args) > 2 and args[1] == "affiche":
+            if not self.has_admin_rights(serv, author):
+                return
+            for arg in args[2:]:
+                if arg.startswith(config.shaarli_url):
+                    small_hash = arg.split('?')[-1]
+                else:
+                    small_hash = arg
+                post = {"hash": small_hash}
+                r = requests.post(config.shaarli_url,
+                                  params=params,
+                                  data=post)
+                if r.status_code != requests.code.ok:
+                    self.ans(serv, author,
+                             "Impossible d'éditer le lien "+arg+". " +
+                             "Status code : "+str(r.status_code))
+                    continue
+                post = {"url": r.json['url'], "private": 0}
+                r = requests.post(config.shaarli_url,
+                                  params=params,
+                                  data=post)
+                if r.status_code != 200:
+                    self.ans(serv, author,
+                             "Impossible d'éditer le lien "+arg+". " +
+                             "Status code : "+str(r.status_code))
+                    continue
+                self.ans(serv, author, "Liens rendus publics.")
+        else:
+            raise InvalidArgs
 
     def close(self):
         """Exits nicely"""
