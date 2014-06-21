@@ -2,7 +2,6 @@ from collections import deque # Fifo for log cache
 from datetime import datetime
 
 from ._shared import *
-from .Rule import Rule
 
 class Log(Rule):
 	"""Log interesting (or not) discussion on the chan"""
@@ -74,7 +73,6 @@ class Log(Rule):
 			self.bot.ans(serv, author, "Loggé !")
 		else:
 			self.bot.ans(serv, author, "Je n'ai pas trouvé")
-			print("pas trouvé", found_end, found_start)
 
 	def close(self):
 		self.flush_all()

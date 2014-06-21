@@ -32,6 +32,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.current_leds = "off"
 
         self.log = Log(self, config)
+        self.atx = Atx(self, config, jarvis_cmd)
 
         self.rules = {}
         self.add_rule("aide",
@@ -86,7 +87,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.alias = self.read_alias()
         self.nickserved = False
         self.camera_pos = "0°"
-        self.atx_status = "off"
         self.last_added_link = ""
 
         # Init stream
@@ -309,7 +309,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             raise InvalidArgs
         to_say = "Statut : "
         if 'atx' in infos_items:
-            if self.atx_status == "off":
+            if self.atx.status == "off":
                 to_say += "ATX : "+redc+"off"+endc+", "
             else:
                 to_say += "ATX : "+greenc+"on"+endc+", "
@@ -444,21 +444,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     self.ans(serv, author, something)
                 else:
                     self.ans(serv, author, "Je n'arrive plus à parler…")
-        else:
-            raise InvalidArgs
-
-    def atx(self, serv, author, args):
-        """Handles RepRap ATX"""
-        args = [i.lower() for i in args]
-        if len(args) > 1 and args[1] in ["on", "off"]:
-            if args[1] == "on" and jarvis_cmd.atx(1):
-                self.atx_status = args[1]
-                self.ans(author, "ATX allumée.")
-            elif args[1] == "off" and jarvis_cmd.atx(0):
-                self.atx_status = args[1]
-                self.ans(serv, author, "ATX éteinte.")
-            else:
-                self.ans(serv, author, "L'ATX est devenue incontrôlable !")
         else:
             raise InvalidArgs
 
