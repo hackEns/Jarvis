@@ -4,8 +4,8 @@
 * "jarvis: emprunt outil until"
     => TODO :
         * gestion des retours
-        * pas d'emprunts multiples
         * l. 559 and co ?
+        * for * in self.bdd_cursor ?
 * budget
 * liste de courses
 * update ?

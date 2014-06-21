@@ -535,10 +535,24 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         else:
             year = this_year
         until = datetime.datetime(year, month, day, hour)
-        query = ("INSERT INTO borrowings(id, borrower, tool, from, until)" +
-                 "VALUES ('', %(borrower)s, %(tool)s, %(from)s, %(until)s)")
-        values = (borrower, tool, datetime.datetime.now(), until)
+        query = ("INSERT INTO borrowings"+
+                 "(id, borrower, tool, from, until, back)" +
+                 "VALUES ('', %s, %s, %s, %s, %s)")
+        values = (borrower, tool, datetime.datetime.now(), until, 0)
         try:
+            self.bdd_cursor.execute("SELECT id, borrower, tool, from, until, "+
+                                    "back FROM borrowings " +
+                                    "WHERE back=0 AND borrower=%s AND tool=%s",
+                                    (borrower, tool))
+            if len(self.bdd_cursor) > 0:
+                self.ans(serv,
+                         author,
+                         "Il y a déjà un emprunt en cours, mise à jour.")
+                query = ("UPDATE borrowings"+
+                         "(id, borrower, tool, from, until, back)" +
+                         "SET until=%s " +
+                         "WHERE back=0 AND borrower=%s AND tool=%s")
+                values = (until, borrower, tool)
             self.bdd_cursor.execute(query, values)
             self.bdd.commit()
         except mysql.connector.errors.Error:
@@ -557,8 +571,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Notifications when borrowing is over"""
         now = datetime.datetime.now()
         1h_later = now + datetime.timedelta(hours=1)
-        query = ("SELECT borrower, tool, from, until FROM borrowings " +
-                 "WHERE until BETWEEN %s AND %s")
+        query = ("SELECT borrower, tool, from, until, back FROM borrowings " +
+                 "WHERE until BETWEEN %s AND %s AND back=0")
         try:
             self.bdd_cursor.execute(query, (now, 1h_later))
         except mysql.connector.errors.Error:
