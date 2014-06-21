@@ -100,6 +100,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 self.error = err
             self.bdd = None
+            self.bdd_cursor = None
 
     def add_rule(self, name, action, help_msg=""):
         name = name.lower()
