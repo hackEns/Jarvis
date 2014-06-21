@@ -209,11 +209,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def get_version(self):
         """Returns the bot version"""
-        return "Jarvis Bot version "+self.version+" by hackEns"
+        return config.nick + "Bot version " + self.version + " by " + config.author
 
     def aide(self, serv, author, args):
         """Prints help"""
-        self.ans(serv, author, "Jarvis au rapport ! Commandes disponibles :")
+        self.ans(serv, author, config.desc + " Commandes disponibles :")
         if len(args) > 1 and args[0] == "aide":
             self.say(serv, self.rules[args[1]]['help'])
         elif args[0] != "aide" and args[0] in self.rules:

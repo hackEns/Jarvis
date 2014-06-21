@@ -2,3 +2,5 @@ config.py
 data/history
 __pycache__
 *.pyc
+*~
+*.sublime-*

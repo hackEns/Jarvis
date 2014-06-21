@@ -4,6 +4,7 @@ port = 6667
 channel = ""
 nick = "jarvis"
 desc = "Jarvis, au rapport !"
+author = "hackEns"
 password = ""
 
 # SQL parameters
