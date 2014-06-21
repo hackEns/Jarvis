@@ -18,7 +18,7 @@ mysql = {
 
 # Shaarli
 shaarli_url = ""
-shaarli_token = ""
+shaarli_key = ""
 
 # Stream parameters
 stream_server = ""

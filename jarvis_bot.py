@@ -65,9 +65,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("jeu",
                       self.jeu,
                       help_msg="jeu")
+        self.add_rule("lien",
+                      self.lien,
+                      help_msg=("lien (dernier | " +
+                                "(supprime|ignore|affiche) [id|permalien] | "))
         self.add_rule("log",
                       self.log,
-                      help_msg="log -- TODO")
+                      help_msg="log debut ... fin")
         self.add_rule("lumiere",
                       self.lumiere,
                       help_msg="lumiere (R G B)|script")
@@ -91,6 +95,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.log_save_buffer = ""
         self.log_save_buffer_count = 0
 
+        # Init stream
+        self.streamh = None
+        self.oggfwd = None
+
         try:
             self.bdd = mysql.connector.connect(**config.mysql)
             self.bdd_cursor = self.bdd.cursor()
@@ -102,6 +110,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 self.error = err
             self.bdd = None
+            self.bdd_cursor = None
 
     def add_rule(self, name, action, help_msg=""):
         name = name.lower()
@@ -114,9 +123,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Upon server connection"""
         serv.privmsg("nickserv", "identify "+config.password)
         serv.join(config.channel)
-        self.connection.execute_delayed(random.randrange(3600, 604800),
-                                        self.tchou_tchou, (serv))
-        self.connection.execute_every(3600, self.notifs_emprunts, (serv))
+
+        #self.connection.execute_delayed(random.randrange(3600, 604800),
+        #                                self.tchou_tchou, (serv))
+        #self.connection.execute_every(3600, self.notifs_emprunts, (serv))
         if self.error is not None:
             self.say(serv, self.error)
 
@@ -138,12 +148,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                           msg)
         if len(urls) > 0:
             self.on_links(serv, author, urls)
-        self.add_log_cache(author, raw_msg) # Log each line
+        
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname().lower() and
            (config.authorized == [] or author in config.authorized)):
             msg = shlex.split(msg[1])
-            self.add_history(author, msg[1])
+            self.add_history(author, msg[0])
             if msg[0] in self.rules:
                 try:
                     self.rules[msg[0]]['action'](serv, author, msg)
@@ -152,9 +162,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
 
+        self.add_log_cache(author, raw_msg) # Log each line
+
     def on_links(self, serv, author, urls):
         for url in set(urls):
-            params = {"do": "api", "token": config.shaarli_token}
+            params = {"do": "api", "key": config.shaarli_key}
             post = {"url": url,
                     "description": "Posté par "+author+".",
                     "private": 0}
@@ -224,7 +236,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def get_version(self):
         """Returns the bot version"""
-        return config.nick + "Bot version " + self.version + " by " + config.author
+        return (config.nick + "Bot version " +
+                self.version + " by " + config.author)
+
+    def has_admin_rights(self, serv, author):
+        """Checks that author is in admin users"""
+        if len(config.admin) > 0 and author not in config.admin:
+            self.ans(serv, author,
+                     "Vous n'avez pas l'autorisation d'accéder à cette " +
+                     "commande.")
+            return False
+        return True
 
     def add_log_cache(self, author, msg):
         """Add line to log cache. If cache is full, last line is append to save buffer which is on its turn flushed to disk if full"""
@@ -233,11 +255,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             if self.log_save_buffer_count > config.log_save_buffer_size:
                 self.log_flush_buffer()
 
-        self.log_cache.appendleft((datetime.hour, datetime.minute, author, msg))
+        self.log_cache.appendleft((datetime.now().hour, datetime.now().minute, author, msg))
 
     def log_cache_to_buffer(self):
         """Pop a line from log cache and append it to save buffer"""
-        self.log_save_buffer += "%d:%d <%s> %s\n" % self.log_cache.pop()
+        t = self.log_cache.pop()
+        print(t)
+        self.log_save_buffer += "%d:%d <%s> %s\n" % t
         self.log_save_buffer_count += 1
 
     def log_flush_buffer(self):
@@ -295,8 +319,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 to_say += "LEDs : "+redc+"off"+endc+", "
         if 'stream' in infos_items:
-            if(self.oggfwd is not None and self.stream is not None and
-               self.oggfwd.poll() is None and self.stream.poll() is None):
+            if(self.oggfwd is not None and self.streamh is not None and
+               self.oggfwd.poll() is None and self.streamh.poll() is None):
                 to_say += "Stream : "+greenc+"Actif"+endc+", "
             else:
                 to_say += "Stream : "+redc+"HS"+endc+", "
@@ -372,7 +396,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             try:
                 if isinstance(self.leds, subprocess.Popen):
                     self.leds.terminate()
-            except subprocess.ProcessLookupError:
+            except ProcessLookupError:
                 pass
             self.leds = None
             self.current_leds = "off"
@@ -431,7 +455,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def historique(self, serv, author, args):
         """Handles history"""
         try:
-            if(len(args) == 3 and
+            if(len(args) == 4 and
                int(args[2]) < len(self.history) and
                int(args[3]) < len(self.history)):
                 start = int(args[2])
@@ -469,30 +493,36 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def log(self, serv, author, args):
         """Handles logging"""
-        if len(args) != 4 or args[2] != '..':
+        if len(args) != 4 or args[2] != '...':
             raise InvalidArgs
 
         tmp = []
         start = args[1]
         end = args[3]
         found_end = False
-        for tpl in reversed(self.log_cache):
-            msg = tpl[3]
+        found_start = False
+        for (h, m, auth, msg) in self.log_cache:
             end_index = msg.rfind(end)
             if not found_end and end_index >= 0:
-                tpl[3] = msg[:end_index + len(end)]
+                msg = msg[:end_index + len(end)]
                 found_end = True
             if found_end:
-                tmp.append(tpl)
-                msg = tpl[3] # Required if start and end are on the same line
                 start_index = msg.find(start)
                 if start_index >= 0:
-                    tpl[3] = msg[start_index:]
-                    found_end = True
+                    msg = msg[start_index:]
+                    tmp.append((h, m, auth, msg))
+                    found_start = True
+                    break
+                tmp.append((h, m, auth, msg))
 
-        with open(config.log_file, 'a') as f:
-            for i in range(len(tmp)):
-                f.write("%d:%d <%s> %s" % tmp.pop())
+        if found_start:
+            with open(config.log_file, 'a') as f:
+                for i in range(len(tmp)):
+                    f.write("%d:%d <%s> %s\n" % tmp.pop())
+            self.ans(serv, author, "Loggé !")
+        else:
+            self.ans(serv, author, "Je n'ai pas trouvé")
+            print("pas trouvé", found_end, found_start)
 
 
 
@@ -513,13 +543,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def stream(self, serv, author, args):
         """Handles stream transmission"""
         if args[1] == "on":
-            if self.oggfwd is not None and self.stream is not None:
+            if self.oggfwd is not None and self.streamh is not None:
                 self.ans(serv, author,
                          "La retransmission est déjà opérationnelle.")
                 return
             try:
-                if self.stream is None:
-                    self.stream = subprocess.Popen(["python",
+                if self.streamh is None:
+                    self.streamh = subprocess.Popen(["python",
                                                     self.basepath +
                                                     "/stream.py",
                                                     "/dev/video*"],
@@ -535,23 +565,23 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                     "-d "+config.stream_desc,
                                                     "-u "+config.stream_url,
                                                     "-g "+config.stream_genre],
-                                                   stdin=self.stream.stdout)
+                                                   stdin=self.streamh.stdout)
                 self.ans(serv, author, "Retransmission lancée !")
             except (IOError, ValueError):
                 self.ans(serv,
                          author,
                          "Impossible de démarrer la retransmission.")
         elif args[1] == "off":
-            if self.stream is not None:
+            if self.streamh is not None:
                 try:
-                    self.stream.terminate()
-                except subprocess.ProcessLookupError:
+                    self.streamh.terminate()
+                except ProcessLookupError:
                     pass
-                self.stream = None
+                self.streamh = None
             if self.oggfwd is not None:
                 try:
                     self.oggfwd.terminate()
-                except subprocess.ProcessLookupError:
+                except ProcessLookupError:
                     pass
                 self.oggfwd = None
             self.ans(serv, author, "Retransmission interrompue.")
@@ -668,25 +698,151 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 serv.privmsg(borrower,
                              "Pour confirmer le retour, répond-moi \"oui\".")
 
+    def lien(self, serv, author, args):
+        """Handles links managements through Shaarli API"""
+        params = {"do": "api", "key": config.shaarli_key}
+        if len(args) > 1 and args[1] == "dernier":
+            self.ans(serv, author, self.last_added_link)
+        elif len(args) > 1 and args[1] == "ignore":
+            if not self.has_admin_rights(serv, author):
+                return
+            if len(args) == 2:
+                post = {"url": self.last_added_link, "private": 1}
+                r = requests.post(config.shaarli_url,
+                                  params=params,
+                                  data=post)
+                if r.status_code != 200:
+                    self.ans(serv, author,
+                             "Impossible d'éditer le lien " +
+                             self.last_added_link+". "
+                             "Status code : "+str(r.status_code))
+                    return
+            else:
+                for arg in args[2:]:
+                    if arg.startswith(config.shaarli_url):
+                        small_hash = arg.split('?')[-1]
+                    else:
+                        small_hash = arg
+                    params["hash"] = small_hash
+                    r = requests.get(config.shaarli_url,
+                                     params=params)
+                    del(params["hash"])
+                    if r.status_code != requests.code.ok:
+                        self.ans(serv, author,
+                                 "Impossible d'éditer le lien "+arg+". " +
+                                 "Status code : "+str(r.status_code))
+                        continue
+                    post = {"url": r.json['url'], "private": 1}
+                    r = requests.post(config.shaarli_url,
+                                      params=params,
+                                      data=post)
+                    if r.status_code != 200:
+                        self.ans(serv, author,
+                                 "Impossible d'éditer le lien "+arg+". " +
+                                 "Status code : "+str(r.status_code))
+                        continue
+                self.ans(serv, author, "Liens rendus publics.")
+        elif len(args) > 1 and args[1] == "supprime":
+            if not self.has_admin_rights(serv, author):
+                return
+            if len(args) == 2:
+                params["url"] = self.last_added_link
+                r = requests.get(config.shaarli_url,
+                                 params=params)
+                del(params["url"])
+                if r.status_code != requests.code.ok:
+                    self.ans(serv, author,
+                             "Impossible de supprimer le lien " +
+                             arg + ". " +
+                             "Status code : "+str(r.status_code))
+                    return
+                params["key"] = r.json()["key"]
+                r = requests.delete(config.shaarli_url,
+                                    params=params)
+                del(params["key"])
+                if r.status_code != 200:
+                    self.ans(serv, author,
+                             "Impossible de supprimer le lien " +
+                             self.last_added_link+". "
+                             "Status code : "+str(r.status_code))
+                    return
+                self.ans(serv, author, "Liens supprimés.")
+            else:
+                for arg in args[2:]:
+                    if arg.startswith(config.shaarli_url):
+                        small_hash = arg.split('?')[-1]
+                    else:
+                        small_hash = arg
+                    params["hash"] = small_hash
+                    r = requests.get(config.shaarli_url,
+                                     params=params)
+                    del(params["hash"])
+                    if r.status_code != requests.code.ok:
+                        self.ans(serv, author,
+                                 "Impossible de supprimer le lien " +
+                                 arg + ". " +
+                                 "Status code : "+str(r.status_code))
+                        continue
+                    params["key"] = r.json()["key"]
+                    r = requests.delete(config.shaarli_url,
+                                        params=params)
+                    del(params["key"])
+                    if r.status_code != 200:
+                        self.ans(serv, author,
+                                 "Impossible de supprimer le lien " +
+                                 arg + ". " +
+                                 "Status code : "+str(r.status_code))
+                        continue
+                self.ans(serv, author, "Liens supprimés.")
+        elif len(args) > 2 and args[1] == "affiche":
+            if not self.has_admin_rights(serv, author):
+                return
+            for arg in args[2:]:
+                if arg.startswith(config.shaarli_url):
+                    small_hash = arg.split('?')[-1]
+                else:
+                    small_hash = arg
+                post = {"hash": small_hash}
+                r = requests.post(config.shaarli_url,
+                                  params=params,
+                                  data=post)
+                if r.status_code != requests.code.ok:
+                    self.ans(serv, author,
+                             "Impossible d'éditer le lien "+arg+". " +
+                             "Status code : "+str(r.status_code))
+                    continue
+                post = {"url": r.json['url'], "private": 0}
+                r = requests.post(config.shaarli_url,
+                                  params=params,
+                                  data=post)
+                if r.status_code != 200:
+                    self.ans(serv, author,
+                             "Impossible d'éditer le lien "+arg+". " +
+                             "Status code : "+str(r.status_code))
+                    continue
+                self.ans(serv, author, "Liens rendus publics.")
+        else:
+            raise InvalidArgs
+
     def close(self):
         """Exits nicely"""
         if self.leds is not None:
             try:
                 self.leds.terminate()
-            except subprocess.ProcessLookupError:
+            except ProcessLookupError:
                 pass
             self.leds = None
             self.current_leds = "off"
-        if self.stream is not None:
+        if self.streamh is not None:
             try:
-                self.stream.terminate()
-            except subprocess.ProcessLookupError:
+                self.streamh.terminate()
+            except ProcessLookupError:
                 pass
-            self.stream = None
+            self.streamh = None
         if self.oggfwd is not None:
             try:
                 self.oggfwd.terminate()
-            except subprocess.ProcessLookupError:
+            except ProcessLookupError:
                 pass
             self.oggfwd = None
         if self.bdd_cursor is not None:
