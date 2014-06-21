@@ -10,6 +10,8 @@ Requirements
 
  * Python 3
  * oggfwd
+ * python-mysql-connector
+ * requests
 
 
 Installation

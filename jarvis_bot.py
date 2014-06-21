@@ -14,6 +14,8 @@ import shlex
 import smtplib
 import subprocess
 import sys
+from collections import deque # Fifo for log cache
+from datetime import datetime
 
 
 class InvalidArgs(Exception):
@@ -83,6 +85,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.camera_pos = "0°"
         self.atx_status = "off"
         self.last_added_link = ""
+
+        # Init Log
+        self.log_cache = deque("", config.log_cache_size)
+        self.log_save_buffer = ""
+        self.log_save_buffer_count = 0
+
         try:
             self.bdd = mysql.connector.connect(**config.mysql)
             self.bdd_cursor = self.bdd.cursor()
@@ -124,11 +132,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def on_pubmsg(self, serv, ev):
         """Handles the queries on the chan"""
         author = ev.source.nick
-        msg = ev.arguments[0].strip().lower()
+        raw_msg = ev.arguments[0]
+        msg = raw_msg.strip().lower()
         urls = re.findall("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
                           msg)
         if len(urls) > 0:
             self.on_links(serv, author, urls)
+        self.add_log_cache(author, raw_msg) # Log each line
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname().lower() and
            (config.authorized == [] or author in config.authorized)):
@@ -215,6 +225,32 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def get_version(self):
         """Returns the bot version"""
         return config.nick + "Bot version " + self.version + " by " + config.author
+
+    def add_log_cache(self, author, msg):
+        """Add line to log cache. If cache is full, last line is append to save buffer which is on its turn flushed to disk if full"""
+        if len(self.log_cache) >= config.log_cache_size:
+            self.log_cache_to_buffer()
+            if self.log_save_buffer_count > config.log_save_buffer_size:
+                self.log_flush_buffer()
+
+        self.log_cache.appendleft((datetime.hour, datetime.minute, author, msg))
+
+    def log_cache_to_buffer(self):
+        """Pop a line from log cache and append it to save buffer"""
+        self.log_save_buffer += "%d:%d <%s> %s\n" % self.log_cache.pop()
+        self.log_save_buffer_count += 1
+
+    def log_flush_buffer(self):
+        """Flush log save buffer to disk"""
+        with open(config.log_all_file, 'a') as f:
+            f.write(self.log_save_buffer)
+            self.log_save_buffer = ""
+            self.log_save_buffer_count = 0
+
+    def log_flush_all(self):
+        for i in range(len(self.log_cache)):
+            self.log_cache_to_buffer()
+        self.log_flush_buffer()
 
     def aide(self, serv, author, args):
         """Prints help"""
@@ -433,8 +469,33 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def log(self, serv, author, args):
         """Handles logging"""
-        # TODO
-        pass
+        if len(args) != 4 or args[2] != '..':
+            raise InvalidArgs
+
+        tmp = []
+        start = args[1]
+        end = args[3]
+        found_end = False
+        for tpl in reversed(self.log_cache):
+            msg = tpl[3]
+            end_index = msg.rfind(end)
+            if not found_end and end_index >= 0:
+                tpl[3] = msg[:end_index + len(end)]
+                found_end = True
+            if found_end:
+                tmp.append(tpl)
+                msg = tpl[3] # Required if start and end are on the same line
+                start_index = msg.find(start)
+                if start_index >= 0:
+                    tpl[3] = msg[start_index:]
+                    found_end = True
+
+        with open(config.log_file, 'a') as f:
+            for i in range(len(tmp)):
+                f.write("%d:%d <%s> %s" % tmp.pop())
+
+
+
 
     def update(self, serv, author, args):
         """Handles bot updating"""
@@ -632,6 +693,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.bdd_cursor.close()
         if self.bdd is not None:
             self.bdd.close()
+        self.log_flush_all()
 
 
 if __name__ == '__main__':
