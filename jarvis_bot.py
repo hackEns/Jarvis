@@ -75,6 +75,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("lumiere",
                       self.lumiere,
                       help_msg="lumiere (R G B)|script")
+        self.add_rule("retour",
+                      self.retour,
+                      help_msg="retour outil [email]")
         self.add_rule("stream",
                       self.stream,
                       help_msg="stream on|off")
@@ -129,8 +132,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if(ev.source.nick.lower() == 'nickserv' and
            "You are now identified" in ev.arguments[0]):
             self.nickserved = True
-        if(config.authorized_queries == [] or
-           ev.source.nick in config.authorized_queries):
+        elif(ev.arguments[0].strip().startswith("oui")):
+            id = ev.arguments[0].replace("oui", "").strip()
+            self.retour_priv(self, ev.source.nick, id)
+        elif(config.authorized_queries == [] or
+             ev.source.nick in config.authorized_queries):
             self.on_pubmsg(self, serv, ev)
 
     def on_pubmsg(self, serv, ev):
@@ -626,22 +632,61 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                  "Emprunt de "+tool+" jusqu'au " +
                  padding(day)+"/"+padding(month)+" à "+padding(hour)+"h noté.")
 
+    def retour(self, serv, author, args):
+        """Handles end of borrowings"""
+        args = [i.lower() for i in args]
+        if len(args) < 2:
+            raise InvalidArgs
+        if len(args) > 3:
+            if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
+                        args[3]) is not None:
+                borrower = args[3]
+            else:
+                raise InvalidArgs
+        else:
+            borrower = author
+        query = ("UPDATE borrowings SET back=1 WHERE tool=%s AND borrower=%s")
+        values = (args[1], borrower)
+        self.bdd_cursor.execute(query, values)
+        self.bdd.commit()
+        if cursor.rowcount > 0:
+            self.ans(serv, author,
+                     "Emprunt de "+args[1]+" enregistré.")
+        else:
+            self.ans(serv, author,
+                     "Emprunt introuvable.")
+
+    def retour_priv(self, author, id):
+        """Handles end of borrowings with private answers to notifications"""
+        query = ("UPDATE borrowings SET back=1 WHERE id=%s")
+        values = (id,)
+        self.bdd_cursor.execute(query, values)
+        self.bdd.commit()
+        if cursor.rowcount > 0:
+            self.privmsg(author,
+                         "Emprunt de "+args[1]+" enregistré.")
+        else:
+            self.privmsg(author,
+                         "Emprunt introuvable.")
+
     def notifs_emprunts(self, serv):
         """Notifications when borrowing is over"""
         now = datetime.datetime.now()
-        later_1h = now + datetime.timedelta(hours=1)
-        query = ("SELECT borrower, tool, from, until, back FROM borrowings " +
-                 "WHERE until BETWEEN %s AND %s AND back=0")
+        delta = datetime.timedelta(hours=2)
+        query = ("SELECT id, borrower, tool, from, until FROM borrowings " +
+                 "WHERE ((until <= %s AND until - from <= %s) " +
+                 "OR until <= %s) AND back=0")
         try:
             assert(self.bdd_cursor is not None)
-            self.bdd_cursor.execute(query, (now, later_1h))
+            self.bdd_cursor.execute(query,
+                                    (now + delta, delta, now))
         except (AssertionError, mysql.connector.errors.Error):
             serv.say(serv,
                      "Impossible de récupérer les notifications d'emprunts.")
             return
-        for (borrower, tool, until) in self.bdd_cursor:
+        for (id_field, borrower, tool, from_field, until) in self.bdd_cursor:
             notif = ("Tu as emprunté "+tool+" depuis le " +
-                     datetime.strftime("%d/%m/%Y") +
+                     datetime.strftime(from_field, "%d/%m/%Y") +
                      " et tu devais le " +
                      "rendre aujourd'hui. L'as-tu rendu ?")
             if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
@@ -660,7 +705,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             else:
                 serv.privmsg(borrower, notif)
                 serv.privmsg(borrower,
-                             "Pour confirmer le retour, répond-moi \"oui\".")
+                             "Pour confirmer le retour, répond-moi " +
+                             "\"oui " + id_field + "\" en query.")
 
     def lien(self, serv, author, args):
         """Handles links managements through Shaarli API"""
