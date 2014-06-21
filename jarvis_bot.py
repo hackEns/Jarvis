@@ -161,7 +161,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def on_links(self, serv, author, urls):
         for url in set(urls):
-            params = {"do": "api", "token": config.shaarli_key}
+            params = (("do", "api"), ("token", config.shaarli_key))
             post = {"url": url,
                     "description": "Posté par "+author+".",
                     "private": 0}
@@ -632,7 +632,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def lien(self, serv, author, args):
         """Handles links managements through Shaarli API"""
-        params = {"do": "api", "token": config.shaarli_key}
+        params = (("do", "api"), ("token", config.shaarli_key))
         if len(args) > 1 and args[1] == "dernier":
             self.ans(serv, author, self.last_added_link)
         elif len(args) > 1 and args[1] == "ignore":
