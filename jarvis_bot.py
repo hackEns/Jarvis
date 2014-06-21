@@ -613,11 +613,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         values = (borrower, tool, datetime.datetime.now(), until, 0)
         try:
             assert(self.bdd_cursor is not None)
-            self.bdd_cursor.execute("SELECT id, borrower, tool, from, " +
-                                    "until, back FROM borrowings " +
+            self.bdd_cursor.execute("SELECT COUNT(id) AS nb FROM borrowings " +
                                     "WHERE back=0 AND borrower=%s AND tool=%s",
                                     (borrower, tool))
-            if len(self.bdd_cursor) > 0:
+            row = self.bdd_cursor.fetchone()
+            if row['nb'] > 0:
                 self.ans(serv,
                          author,
                          "Il y a déjà un emprunt en cours, mise à jour.")
