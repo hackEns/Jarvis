@@ -493,8 +493,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Notifications when borrowing is over"""
         now = datetime.datetime.now()
         delta = datetime.timedelta(hours=2)
-        query = ("SELECT id, borrower, tool, from, until FROM borrowings " +
-                 "WHERE ((until <= %s AND until - from <= %s) " +
+        query = ("SELECT id, borrower, tool, date_from, until FROM borrowings " +
+                 "WHERE ((until <= %s AND until - date_from <= %s) " +
                  "OR until <= %s) AND back=0")
         try:
             assert(self.bdd_cursor is not None)

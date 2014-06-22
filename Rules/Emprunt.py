@@ -53,7 +53,7 @@ class Emprunt(Rule):
             year = this_year
         until = datetime.datetime(year, month, day, hour)
         query = ("INSERT INTO borrowings" +
-                 "(borrower, tool, `from`, until, back)" +
+                 "(borrower, tool, `date_from`, until, back)" +
                  "VALUES (%s, %s, %s, %s, %s)")
         values = (borrower, tool, datetime.datetime.now(), until, 0)
         try:
@@ -67,7 +67,7 @@ class Emprunt(Rule):
                          author,
                          "Il y a déjà un emprunt en cours, mise à jour.")
                 query = ("UPDATE borrowings" +
-                         "(id, borrower, tool, `from`, until, back)" +
+                         "(id, borrower, tool, `date_from`, until, back)" +
                          "SET until=%s " +
                          "WHERE back=0 AND borrower=%s AND tool=%s")
                 values = (until, borrower, tool)
