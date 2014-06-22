@@ -62,6 +62,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("atx",
                       self.atx,
                       help_msg="atx on|off")
+        self.add_rule("budget",
+                      self.budget,
+                      help_msg="budget (entrée|sortie) montant commentaire")
         self.add_rule("camera",
                       self.camera,
                       help_msg="camera ALIAS|ANGLE")
@@ -112,7 +115,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         # Init stream
         self.streamh = None
         self.oggfwd = None
-
 
     def add_rule(self, name, action, help_msg=""):
         name = name.lower()
@@ -250,6 +252,34 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             for rule in sorted(self.rules):
                 self.say(serv, self.rules[rule]['help'])
 
+    def budget(self, serv, author, args):
+        """Handles budget"""
+        if len(args) < 4:
+            raise InvalidArgs
+        try:
+            amount = float(args[2].strip(' €'))
+            if args[1] == "sortie":
+                amount = -amount
+        except ValueError:
+            raise InvalidArgs
+        query = ("INSERT INTO budget(id, amount, author, date, comment) " +
+                 "VALUES('', %s, %s, %s, %s)")
+        values = (amount, author, datetime.datetime.now(), args[3:])
+        try:
+            assert(self.bdd_cursor is not None)
+            self.bdd_cursor.execute(query, values)
+            self.bdd.commit()
+        except AssertionError:
+            self.ans(serv, author,
+                     "Impossible d'ajouter la facture, base de données " +
+                     "injoignable.")
+            return
+        except mysql.connector.errors.Error as err:
+            self.ans(serv,
+                     author,
+                     "Impossible d'ajouter la facture. (%s)" % (err,))
+            return
+
     def info(self, serv, author, args):
         """Prints infos"""
         args = [i.lower() for i in args]
@@ -292,7 +322,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             to_say += "Caméra : "+self.camera_pos+", "
         to_say = to_say.strip(", ")
         self.ans(serv, author, to_say)
-
 
     def lumiere(self, serv, author, args):
         """Handles light"""
@@ -423,7 +452,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Prints current version"""
         self.ans(serv, author, self.get_version())
 
-    
     def retour(self, serv, author, args):
         """Handles end of borrowings"""
         args = [i.lower() for i in args]
