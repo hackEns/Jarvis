@@ -64,7 +64,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="atx on|off")
         self.add_rule("budget",
                       self.budget,
-                      help_msg="budget (entrée|sortie) montant commentaire")
+                      help_msg="budget (ajoute|retire) [dépense|crédit] "+
+                      "montant commentaire")
         self.add_rule("camera",
                       self.camera,
                       help_msg="camera ALIAS|ANGLE")
@@ -254,31 +255,68 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def budget(self, serv, author, args):
         """Handles budget"""
-        if len(args) < 4:
-            raise InvalidArgs
         try:
-            amount = float(args[2].strip(' €'))
-            if args[1] == "sortie":
-                amount = -amount
-        except ValueError:
-            raise InvalidArgs
-        query = ("INSERT INTO budget(id, amount, author, date, comment) " +
-                 "VALUES('', %s, %s, %s, %s)")
-        values = (amount, author, datetime.datetime.now(), args[3:])
+            amount = float(args[2].strip(" €"))
+        except (KeyError, ValueError):
+            try:
+                amount = float(args[3].strip(" €"))
+                if args[2] == "dépense":
+                    amount = -amount
+            except (KeyError, ValueError):
+                raise InvalidArgs
         try:
-            assert(self.bdd_cursor is not None)
-            self.bdd_cursor.execute(query, values)
-            self.bdd.commit()
-        except AssertionError:
-            self.ans(serv, author,
-                     "Impossible d'ajouter la facture, base de données " +
-                     "injoignable.")
-            return
-        except mysql.connector.errors.Error as err:
-            self.ans(serv,
-                     author,
-                     "Impossible d'ajouter la facture. (%s)" % (err,))
-            return
+            comment = args[3:]
+        except KeyError:
+            comment = ""
+        if args[1] == "ajoute":
+            if comment == "":
+                raise InvalidArgs
+            query = ("INSERT INTO budget(id, amount, author, date, comment) " +
+                    "VALUES('', %s, %s, %s, %s)")
+            values = (amount, author, datetime.datetime.now(), comment)
+            try:
+                assert(self.bdd_cursor is not None)
+                self.bdd_cursor.execute(query, values)
+                self.bdd.commit()
+            except AssertionError:
+                self.ans(serv, author,
+                        "Impossible d'ajouter la facture, base de données " +
+                        "injoignable.")
+                return
+            except mysql.connector.errors.Error as err:
+                self.ans(serv,
+                        author,
+                        "Impossible d'ajouter la facture. (%s)" % (err,))
+                return
+        elif args[1] == "retire":
+            query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s AND "+
+                     "comment LIKE '%%s%'")
+            values = (amount, comment)
+            try:
+                assert(self.bdd_cursor is not None)
+                self.bdd_cursor.execute(query, values)
+                row = self.bdd_cursor.fetchone()
+                if row[0] > 1:
+                    self.ans(serv, author,
+                             "Requêtes trop ambigue. Plusieurs entrées" +
+                             "correspondent.")
+                    return
+                query = ("DELETE FROM budget WHERE amount=%s AND "+
+                         "comment LIKE '%%s%'")
+                self.bdd_cursor.execute(query, values)
+                self.bdd.commit()
+            except AssertionError:
+                self.ans(serv, author,
+                        "Impossible d'ajouter la facture, base de données " +
+                        "injoignable.")
+                return
+            except mysql.connector.errors.Error as err:
+                self.ans(serv,
+                        author,
+                        "Impossible d'ajouter la facture. (%s)" % (err,))
+                return
+        else:
+            raise InvalidArgs
 
     def info(self, serv, author, args):
         """Prints infos"""
