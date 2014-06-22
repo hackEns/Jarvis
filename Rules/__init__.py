@@ -6,8 +6,10 @@ from .Camera import Camera
 from .Dis import Dis
 from .Disclaimer import Disclaimer
 from .Emprunt import Emprunt
+from .Historique import Historique
 
 __all__ = [
+    "InvalidArgs",
     "Log",
     "Atx",
     "Alias",
@@ -15,7 +17,7 @@ __all__ = [
     "Dis",
     "Disclaimer",
     "Emprunt",
-    "InvalidArgs"
+    "Historique"
 ]
 
 

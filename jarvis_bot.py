@@ -27,7 +27,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.version_nb = "0.2"
         self.error = None
         self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
-        self.history = self.read_history()
         self.leds = None
         self.current_leds = "off"
 
@@ -51,6 +50,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.dis = Dis(self, config, jarvis_cmd)
         self.disclaimer = Disclaimer(self, config)
         self.emprunt = Emprunt(self, config, self.bdd, self.bdd_cursor)
+        self.historique = Historique(self, config, self.basepath)
 
         self.rules = {}
         self.add_rule("aide",
@@ -160,7 +160,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
            (config.authorized == [] or author in config.authorized)):
             msg = shlex.split(msg[1])
             msg[0] = msg[0].lower()
-            self.add_history(author, msg[0])
+            self.historique.add(author, msg[0])
             if msg[0] in self.rules:
                 try:
                     self.rules[msg[0]]['action'](serv, author, msg)
@@ -199,32 +199,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def say(self, serv, message):
         """Say something on the channel"""
         serv.privmsg(config.channel, message)
-
-    def add_history(self, author, cmd):
-        """Adds something to history"""
-        insert = {"author": author, "cmd": cmd}
-        if(config.history_no_doublons and
-           (len(self.history) == 0 or self.history[-1] != insert)):
-            self.history.append(insert)
-            while len(self.history) > config.history_length:
-                self.history.popleft()
-                self.write_history()
-
-    def write_history(self):
-        write = ''
-        for hist in self.history:
-            write += hist["author"]+"\t"+hist["cmd"]+"\n"
-        with open(self.basepath+"data/history", 'w+') as fh:
-            fh.write(write)
-
-    def read_history(self):
-        history = []
-        if os.path.isfile(self.basepath+"data/history"):
-            with open(self.basepath+"data/history", 'r') as fh:
-                for line in fh.readlines():
-                    line = [i.strip() for i in line.split('\t')]
-                    history.append({'author': line[0], 'cmd': line[1]})
-        return history
 
     def get_version(self):
         """Returns the bot version"""
@@ -358,29 +332,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.current_leds = args[1]
         else:
             raise InvalidArgs
-
-    def historique(self, serv, author, args):
-        """Handles history"""
-        try:
-            if(len(args) == 3 and
-               int(args[1]) < len(self.history) and
-               int(args[2]) < len(self.history)):
-                start = int(args[1])
-                end = int(args[2])
-            elif len(args) == 2:
-                start = -int(args[1])
-                end = None
-            else:
-                start = -config.history_lines_to_show
-                end = None
-        except ValueError:
-            raise InvalidArgs
-        self.ans(serv, author, "Historique :")
-        if len(self.history[start:end]) == 0:
-            self.say(serv, "Pas d'historique disponible.")
-        else:
-            for hist in self.history[start:end]:
-                self.say(serv, hist['cmd']+" par "+hist['author'])
 
     def jeu(self, serv, author, args):
         """Handles game"""
