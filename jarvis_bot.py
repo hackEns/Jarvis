@@ -31,12 +31,26 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.leds = None
         self.current_leds = "off"
 
+        try:
+            self.bdd = mysql.connector.connect(**config.mysql)
+            self.bdd_cursor = self.bdd.cursor()
+        except mysql.connector.Error as err:
+            if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
+                self.error = "Accès refusé à la BDD."
+            elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
+                self.error = "La base MySQL n'existe pas."
+            else:
+                self.error = err
+            self.bdd = None
+            self.bdd_cursor = None
+
         self.log = Log(self, config)
         self.atx = Atx(self, config, jarvis_cmd)
         self.alias = Alias(self, config, self.basepath)
         self.camera = Camera(self, config, jarvis_cmd)
         self.dis = Dis(self, config, jarvis_cmd)
         self.disclaimer = Disclaimer(self, config)
+        self.emprunt = Emprunt(self, config, self.bdd, self.bdd_cursor)
 
         self.rules = {}
         self.add_rule("aide",
@@ -99,18 +113,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.streamh = None
         self.oggfwd = None
 
-        try:
-            self.bdd = mysql.connector.connect(**config.mysql)
-            self.bdd_cursor = self.bdd.cursor()
-        except mysql.connector.Error as err:
-            if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
-                self.error = "Accès refusé à la BDD."
-            elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
-                self.error = "La base MySQL n'existe pas."
-            else:
-                self.error = err
-            self.bdd = None
-            self.bdd_cursor = None
 
     def add_rule(self, name, action, help_msg=""):
         name = name.lower()
@@ -235,39 +237,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                      "commande.")
             return False
         return True
-
-    def add_log_cache(self, author, msg):
-        """Add line to log cache.
-        If cache is full, last line is append to save buffer
-        which is on its turn flushed to disk if full
-        """
-        if len(self.log_cache) >= config.log_cache_size:
-            self.log_cache_to_buffer()
-            if self.log_save_buffer_count > config.log_save_buffer_size:
-                self.log_flush_buffer()
-
-        self.log_cache.appendleft((datetime.datetime.now().hour,
-                                   datetime.datetime.now().minute,
-                                   author,
-                                   msg))
-
-    def log_cache_to_buffer(self):
-        """Pop a line from log cache and append it to save buffer"""
-        t = self.log_cache.pop()
-        self.log_save_buffer += "%d:%d <%s> %s\n" % t
-        self.log_save_buffer_count += 1
-
-    def log_flush_buffer(self):
-        """Flush log save buffer to disk"""
-        with open(config.log_all_file, 'a') as f:
-            f.write(self.log_save_buffer)
-            self.log_save_buffer = ""
-            self.log_save_buffer_count = 0
-
-    def log_flush_all(self):
-        for i in range(len(self.log_cache)):
-            self.log_cache_to_buffer()
-        self.log_flush_buffer()
 
     def aide(self, serv, author, args):
         """Prints help"""
@@ -454,80 +423,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Prints current version"""
         self.ans(serv, author, self.get_version())
 
-    def emprunt(self, serv, author, args):
-        """Handles tools borrowings"""
-        args = [i.lower() for i in args]
-        if len(args) < 3:
-            raise InvalidArgs
-        this_year = datetime.date.today().year
-        tool = args[1]
-        until = [i.strip() for i in args[2].replace('/', ' ').split(" ")]
-        try:
-            assert(len(until) > 2)
-            day = int(until[0])
-            month = int(until[1])
-            assert(month > 0 and month < 13)
-            if month % 2 == 1:
-                assert(day > 0 and day <= 31)
-            elif month == 2:
-                if((this_year % 4 == 0 and this_year % 100 != 0) or
-                   this_year % 400 == 0):
-                    assert(day > 0 and day <= 29)
-                else:
-                    assert(day > 0 and day <= 28)
-            else:
-                assert(day > 0 and day <= 30)
-            hour = int(until[2])
-            assert(hour >= 0 and hour < 24)
-        except (AssertionError, ValueError):
-            raise InvalidArgs
-        if len(args) > 3:
-            if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
-                        args[3]) is not None:
-                borrower = args[3]
-            else:
-                raise InvalidArgs
-        else:
-            borrower = author
-        if month < datetime.date.today().month:
-            year = this_year + 1
-        else:
-            year = this_year
-        until = datetime.datetime(year, month, day, hour)
-        query = ("INSERT INTO borrowings" +
-                 "(id, borrower, tool, from, until, back)" +
-                 "VALUES ('', %s, %s, %s, %s, %s)")
-        values = (borrower, tool, datetime.datetime.now(), until, 0)
-        try:
-            assert(self.bdd_cursor is not None)
-            self.bdd_cursor.execute("SELECT COUNT(id) AS nb FROM borrowings " +
-                                    "WHERE back=0 AND borrower=%s AND tool=%s",
-                                    (borrower, tool))
-            row = self.bdd_cursor.fetchone()
-            if row['nb'] > 0:
-                self.ans(serv,
-                         author,
-                         "Il y a déjà un emprunt en cours, mise à jour.")
-                query = ("UPDATE borrowings" +
-                         "(id, borrower, tool, from, until, back)" +
-                         "SET until=%s " +
-                         "WHERE back=0 AND borrower=%s AND tool=%s")
-                values = (until, borrower, tool)
-            self.bdd_cursor.execute(query, values)
-            self.bdd.commit()
-        except (AssertionError, mysql.connector.errors.Error):
-            self.ans(serv, author, "Impossible d'ajouter l'emprunt.")
-            return
-
-        def padding(number):
-            if number < 10:
-                return "0"+str(number)
-            else:
-                return str(number)
-        self.ans(serv, author,
-                 "Emprunt de "+tool+" jusqu'au " +
-                 padding(day)+"/"+padding(month)+" à "+padding(hour)+"h noté.")
-
+    
     def retour(self, serv, author, args):
         """Handles end of borrowings"""
         args = [i.lower() for i in args]
