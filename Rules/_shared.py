@@ -3,7 +3,12 @@
 
 class Rule():
     def __init__(self):
-        print("New Rule")
+    	pass
+
+
+    def close(self):
+        pass
+
 
 
 

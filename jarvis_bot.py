@@ -51,6 +51,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.disclaimer = Disclaimer(self, config)
         self.emprunt = Emprunt(self, config, self.bdd, self.bdd_cursor)
         self.historique = Historique(self, config, self.basepath)
+        self.info = Info(self, config)
 
         self.rules = {}
         self.add_rule("aide",
@@ -253,49 +254,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                      author,
                      "Impossible d'ajouter la facture. (%s)" % (err,))
             return
-
-    def info(self, serv, author, args):
-        """Prints infos"""
-        args = [i.lower() for i in args]
-        all_items = ['atx', 'leds', 'stream', 'camera']
-        greenc = "\x02\x0303"
-        redc = "\x02\x0304"
-        endc = "\x03\x02"
-        if len(args) > 1:
-            infos_items = [i for i in args[1:] if i in all_items]
-        else:
-            infos_items = all_items
-        if len(infos_items) == 0:
-            raise InvalidArgs
-        to_say = "Statut : "
-        if 'atx' in infos_items:
-            if self.atx.status == "off":
-                to_say += "ATX : "+redc+"off"+endc+", "
-            else:
-                to_say += "ATX : "+greenc+"on"+endc+", "
-        if 'leds' in infos_items:
-            if isinstance(self.leds, subprocess.Popen):
-                poll = self.leds.poll()
-                if poll is not None and poll != 0:
-                    self.leds = None
-                    self.current_leds = "off"
-            if self.current_leds is not None:
-                if self.current_leds == "off":
-                    to_say += "LEDs : "+redc+"off"+endc+", "
-                else:
-                    to_say += "LEDs : "+greenc+self.current_leds+endc+", "
-            else:
-                to_say += "LEDs : "+redc+"off"+endc+", "
-        if 'stream' in infos_items:
-            if(self.oggfwd is not None and self.streamh is not None and
-               self.oggfwd.poll() is None and self.streamh.poll() is None):
-                to_say += "Stream : "+greenc+"Actif"+endc+", "
-            else:
-                to_say += "Stream : "+redc+"HS"+endc+", "
-        if 'camera' in infos_items:
-            to_say += "Caméra : "+self.camera_pos+", "
-        to_say = to_say.strip(", ")
-        self.ans(serv, author, to_say)
 
     def lumiere(self, serv, author, args):
         """Handles light"""
