@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Jun 22, 2014 at 12:38 PM
+-- Generation Time: Jun 22, 2014 at 03:34 PM
 -- Server version: 5.5.37-MariaDB-log
 -- PHP Version: 5.5.12
 
@@ -35,6 +35,20 @@ CREATE TABLE IF NOT EXISTS `borrowings` (
   `back` tinyint(4) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `budget`
+--
+
+CREATE TABLE IF NOT EXISTS `budget` (
+`id` int(11) NOT NULL,
+  `amount` float NOT NULL,
+  `author` varchar(255) NOT NULL,
+  `date` datetime NOT NULL,
+  `comment` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
 --
 -- Indexes for dumped tables
 --
@@ -46,6 +60,12 @@ ALTER TABLE `borrowings`
  ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `budget`
+--
+ALTER TABLE `budget`
+ ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -53,6 +73,11 @@ ALTER TABLE `borrowings`
 -- AUTO_INCREMENT for table `borrowings`
 --
 ALTER TABLE `borrowings`
+MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+--
+-- AUTO_INCREMENT for table `budget`
+--
+ALTER TABLE `budget`
 MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
