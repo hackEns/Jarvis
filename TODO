@@ -1,10 +1,10 @@
 # TODO
 * logs => Elie
 * Beagleboard
-* budget
 * liste de courses
 * pygst
 
 # À tester
 * Emprunt avec un pseudo inexistant ? => notif donne quoi ?
 * update
+* budget
