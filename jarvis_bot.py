@@ -34,6 +34,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.log = Log(self, config)
         self.atx = Atx(self, config, jarvis_cmd)
         self.alias = Alias(self, config, self.basepath)
+        self.camera = Camera(self, config, jarvis_cmd)
+        self.dis = Dis(self, config, jarvis_cmd)
 
         self.rules = {}
         self.add_rule("aide",
@@ -90,7 +92,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="version")
 
         self.nickserved = False
-        self.camera_pos = "0°"
         self.last_added_link = ""
 
         # Init stream
@@ -322,36 +323,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         to_say = to_say.strip(", ")
         self.ans(serv, author, to_say)
 
-    def camera(self, serv, author, args):
-        """Controls camera"""
-        args = [i.lower() for i in args]
-        if len(args) < 2:
-            raise InvalidArgs
-        try:
-            angle = int(args[1])
-            if angle < 0 or angle > 180:
-                raise ValueError
-            if jarvis_cmd.camera(angle):
-                self.camera_pos = str(angle)+"°"
-                self.ans(serv, author, "Caméra réglée à "+angle+"°.")
-            else:
-                self.ans(serv, author, "Je n'arrive pas à régler la caméra.")
-        except ValueError:
-            alias = args[1]
-            angle = -1
-            matchs = [i for i in self.alias.aliases
-                      if i["type"] == "camera" and i["name"] == alias]
-            if len(matchs) == 0:
-                raise InvalidArgs
-            else:
-                angle = int(matchs[0]["value"])
-                if jarvis_cmd.camera(angle):
-                    self.camera_pos = args[1]
-                    self.ans(serv, author, "Caméra réglée à "+angle+"°.")
-                else:
-                    self.ans(serv, author,
-                             "Je n'arrive pas à régler la caméra.")
-
 
     def lumiere(self, serv, author, args):
         """Handles light"""
@@ -386,17 +357,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.leds = subprocess.Popen(['python', script],
                                              stdout=subprocess.DEVNULL)
                 self.current_leds = args[1]
-        else:
-            raise InvalidArgs
-
-    def dis(self, serv, author, args):
-        """Say something"""
-        if len(args) > 1:
-            for something in args[1:]:
-                if jarvis_cmd.dis(something):
-                    self.ans(serv, author, something)
-                else:
-                    self.ans(serv, author, "Je n'arrive plus à parler…")
         else:
             raise InvalidArgs
 
