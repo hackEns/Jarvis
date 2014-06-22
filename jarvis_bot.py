@@ -36,6 +36,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.alias = Alias(self, config, self.basepath)
         self.camera = Camera(self, config, jarvis_cmd)
         self.dis = Dis(self, config, jarvis_cmd)
+        self.disclaimer = Disclaimer(self, config)
 
         self.rules = {}
         self.add_rule("aide",
@@ -386,18 +387,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def jeu(self, serv, author, args):
         """Handles game"""
         self.ans(serv, author, "J'ai perdu le jeu…")
-
-    def disclaimer(self, serv, author, args):
-        """Handles disclaimer"""
-        self.ans(serv, author, "Jarvis est un bot doté de capacités " +
-                 "dépassant à la fois l'entendement et les limites d'irc. " +
-                 "Prenez donc garde a toujours rester poli avec lui car " +
-                 "bien qu'aucune intention malsaine ne lui a été " +
-                 "volontairement inculquée,")
-        self.say(serv, "JARVIS IS PROVIDED \"AS IS\", WITHOUT " +
-                 "WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT " +
-                 "NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS " +
-                 "FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.")
 
     def update(self, serv, author, args):
         """Handles bot updating"""
