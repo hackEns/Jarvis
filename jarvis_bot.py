@@ -70,6 +70,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("camera",
                       self.camera,
                       help_msg="camera ALIAS|ANGLE")
+        self.add_rule("courses",
+                      self.courses,
+                      help_msg="courses (acheter|annuler|acheté) item [comment]")
         self.add_rule("dis",
                       self.dis,
                       help_msg="dis \"quelque chose\"")
@@ -273,7 +276,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 row = self.bdd_cursor.fetchone()
                 if row[0] > 1:
                     self.ans(serv, author,
-                             "Requêtes trop ambigue. Plusieurs entrées" +
+                             "Requêtes trop ambiguë. Plusieurs entrées " +
                              "correspondent.")
                     return
                 query = ("DELETE FROM budget WHERE amount=%s AND "+
@@ -282,13 +285,98 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.bdd.commit()
             except AssertionError:
                 self.ans(serv, author,
-                        "Impossible d'ajouter la facture, base de données " +
+                        "Impossible de supprimer la facture, base de données " +
                         "injoignable.")
                 return
             except mysql.connector.errors.Error as err:
                 self.ans(serv,
                         author,
-                        "Impossible d'ajouter la facture. (%s)" % (err,))
+                        "Impossible de supprimer la facture. (%s)" % (err,))
+                return
+        else:
+            raise InvalidArgs
+
+    def courses(self, serv, author, args):
+        """Handles shopping list"""
+        if len(args) < 3:
+            raise InvalidArgs
+        try:
+            comment = args[3:]
+        except KeyError:
+            comment = ""
+        if args[1] == "acheter":
+            if comment == "":
+                raise InvalidArgs
+            query = ("INSERT INTO courses(id, item, author, comment, date, " +
+                     "bought) VALUES('', %s, %s, %s, %s, 0)")
+            values = (args[2], author, comment, datetime.datetime.now())
+            try:
+                assert(self.bdd_cursor is not None)
+                self.bdd_cursor.execute(query, values)
+                self.bdd.commit()
+            except AssertionError:
+                self.ans(serv, author,
+                        "Impossible d'ajouter l'objet à la liste de courses, " +
+                        "base de données injoignable.")
+                return
+            except mysql.connector.errors.Error as err:
+                self.ans(serv,
+                        author,
+                        "Impossible d'ajouter l'objet à la liste de courses. (%s)" % (err,))
+                return
+        elif args[1] == "annuler":
+            query = ("SELECT COUNT(*) as nb FROM courses WHERE item=%s AND "+
+                     "comment LIKE '%%s%'")
+            values = (args[2], comment)
+            try:
+                assert(self.bdd_cursor is not None)
+                self.bdd_cursor.execute(query, values)
+                row = self.bdd_cursor.fetchone()
+                if row[0] > 1:
+                    self.ans(serv, author,
+                             "Requêtes trop ambiguë. Plusieurs entrées " +
+                             "correspondent.")
+                    return
+                query = ("DELETE FROM courses WHERE item=%s AND "+
+                         "comment LIKE '%%s%'")
+                self.bdd_cursor.execute(query, values)
+                self.bdd.commit()
+            except AssertionError:
+                self.ans(serv, author,
+                        "Impossible de supprimer l'item, base de données " +
+                        "injoignable.")
+                return
+            except mysql.connector.errors.Error as err:
+                self.ans(serv,
+                         author,
+                         "Impossible de supprimer l'item. (%s)" % (err,))
+                return
+        elif args[1] == "acheté":
+            query = ("SELECT COUNT(*) as nb FROM courses WHERE item=%s AND "+
+                     "comment LIKE '%%s%' AND bought=0")
+            values = (args[2], comment)
+            try:
+                assert(self.bdd_cursor is not None)
+                self.bdd_cursor.execute(query, values)
+                row = self.bdd_cursor.fetchone()
+                if row[0] > 1:
+                    self.ans(serv, author,
+                             "Requêtes trop ambiguë. Plusieurs entrées " +
+                             "correspondent.")
+                    return
+                query = ("UPDATE courses SET bought=1 WHERE item=%s AND "+
+                         "comment LIKE '%%s%' AND bought=0")
+                self.bdd_cursor.execute(query, values)
+                self.bdd.commit()
+            except AssertionError:
+                self.ans(serv, author,
+                         "Impossible de marquer l'item comme acheté, " +
+                         "base de données injoignable.")
+                return
+            except mysql.connector.errors.Error as err:
+                self.ans(serv,
+                        author,
+                        "Impossible de marquer l'item comme acheté. (%s)" % (err,))
                 return
         else:
             raise InvalidArgs
