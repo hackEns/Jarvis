@@ -60,10 +60,10 @@ INSERT INTO `budget` (`id`, `amount`, `author`, `date`, `comment`) VALUES
 -- --------------------------------------------------------
 
 --
--- Table structure for table `courses`
+-- Table structure for table `shopping`
 --
 
-CREATE TABLE IF NOT EXISTS `courses` (
+CREATE TABLE IF NOT EXISTS `shopping` (
 `id` int(11) NOT NULL,
   `item` varchar(255) NOT NULL,
   `author` varchar(255) NOT NULL,
@@ -73,10 +73,10 @@ CREATE TABLE IF NOT EXISTS `courses` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3 ;
 
 --
--- Dumping data for table `courses`
+-- Dumping data for table `shopping`
 --
 
-INSERT INTO `courses` (`id`, `item`, `author`, `comment`, `date`, `bought`) VALUES
+INSERT INTO `shopping` (`id`, `item`, `author`, `comment`, `date`, `bought`) VALUES
 (1, 'test', 'bidule', 'Je propose d''acheter chose.', '2014-06-22 19:40:56', 0),
 (2, 'test', 'bidule', 'Je propose d''acheter chose2.', '2014-06-22 19:41:04', 1);
 
@@ -97,9 +97,9 @@ ALTER TABLE `budget`
  ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `courses`
+-- Indexes for table `shopping`
 --
-ALTER TABLE `courses`
+ALTER TABLE `shopping`
  ADD PRIMARY KEY (`id`);
 
 --
@@ -117,9 +117,9 @@ MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 ALTER TABLE `budget`
 MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=3;
 --
--- AUTO_INCREMENT for table `courses`
+-- AUTO_INCREMENT for table `shopping`
 --
-ALTER TABLE `courses`
+ALTER TABLE `shopping`
 MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=3;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
