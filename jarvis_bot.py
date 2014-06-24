@@ -66,7 +66,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("budget",
                       self.budget,
                       help_msg="budget (ajoute|retire) [dépense|crédit] "+
-                      "montant commentaire")
+                      "montant [budget=BUDGET] commentaire")
         self.add_rule("camera",
                       self.camera,
                       help_msg="camera ALIAS|ANGLE")
@@ -244,14 +244,21 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 raise InvalidArgs
         try:
             comment = args[3:]
+            if comment[0].startswith("budget="):
+                budget = comment[0].replace("budget=", '')
+                del(comment[0])
+            else:
+                budget = ""
+            comment = ' '.join(comment)
         except KeyError:
             comment = ""
+            budget = ""
         if args[1] == "ajoute":
             if comment == "":
                 raise InvalidArgs
-            query = ("INSERT INTO budget(id, amount, author, date, comment) " +
-                    "VALUES('', %s, %s, %s, %s)")
-            values = (amount, author, datetime.datetime.now(), comment)
+            query = ("INSERT INTO budget(id, amount, author, date, comment, budget) " +
+                    "VALUES('', %s, %s, %s, %s, %s)")
+            values = (amount, author, datetime.datetime.now(), comment, budget)
             try:
                 assert(self.bdd_cursor is not None)
                 self.bdd_cursor.execute(query, values)
@@ -267,9 +274,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         "Impossible d'ajouter la facture. (%s)" % (err,))
                 return
         elif args[1] == "retire":
-            query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s AND "+
-                     "comment LIKE '%%s%'")
-            values = (amount, comment)
+            if budget != '':
+                query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s AND "+
+                         "comment LIKE '%%s%' AND budget=%s")
+                values = (amount, comment, budget)
+            else:
+                query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s AND "+
+                         "comment LIKE '%%s%'")
+                values = (amount, comment)
             try:
                 assert(self.bdd_cursor is not None)
                 self.bdd_cursor.execute(query, values)
@@ -279,8 +291,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "Requêtes trop ambiguë. Plusieurs entrées " +
                              "correspondent.")
                     return
-                query = ("DELETE FROM budget WHERE amount=%s AND "+
-                         "comment LIKE '%%s%'")
+                if budget != '':
+                    query = ("DELETE FROM budget WHERE amount=%s AND "+
+                             "comment LIKE '%%s%' AND budget=%s")
+                else:
+                    query = ("DELETE FROM budget WHERE amount=%s AND "+
+                             "comment LIKE '%%s%'")
                 self.bdd_cursor.execute(query, values)
                 self.bdd.commit()
             except AssertionError:

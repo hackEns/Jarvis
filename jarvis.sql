@@ -46,16 +46,17 @@ CREATE TABLE IF NOT EXISTS `budget` (
   `amount` float NOT NULL,
   `author` varchar(255) NOT NULL,
   `date` datetime NOT NULL,
-  `comment` text NOT NULL
+  `comment` text NOT NULL,
+  `budget` varchar(255) NOT NULL
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3 ;
 
 --
 -- Dumping data for table `budget`
 --
 
-INSERT INTO `budget` (`id`, `amount`, `author`, `date`, `comment`) VALUES
-(1, 200, 'test', '2014-06-22 17:35:05', 'testbidule'),
-(2, -100, 'test', '2014-06-21 17:35:05', 'testbidule');
+INSERT INTO `budget` (`id`, `amount`, `author`, `date`, `comment`, `budget`) VALUES
+(1, 200, 'test', '2014-06-22 17:35:05', 'testbidule', ''),
+(2, -100, 'test', '2014-06-21 17:35:05', 'testbidule', '');
 
 -- --------------------------------------------------------
 
