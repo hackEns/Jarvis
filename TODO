@@ -3,6 +3,8 @@
 * Beagleboard
 * liste de courses
 * pygst
+* Listes customs pour le budget
+* Webinterface pour éditer
 
 # À tester
 * Emprunt avec un pseudo inexistant ? => notif donne quoi ?

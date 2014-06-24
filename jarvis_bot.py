@@ -307,7 +307,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if args[1] == "acheter":
             if comment == "":
                 raise InvalidArgs
-            query = ("INSERT INTO courses(id, item, author, comment, date, " +
+            query = ("INSERT INTO shopping(id, item, author, comment, date, " +
                      "bought) VALUES('', %s, %s, %s, %s, 0)")
             values = (args[2], author, comment, datetime.datetime.now())
             try:
@@ -325,7 +325,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         "Impossible d'ajouter l'objet à la liste de courses. (%s)" % (err,))
                 return
         elif args[1] == "annuler":
-            query = ("SELECT COUNT(*) as nb FROM courses WHERE item=%s AND "+
+            query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND "+
                      "comment LIKE '%%s%'")
             values = (args[2], comment)
             try:
@@ -337,7 +337,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "Requêtes trop ambiguë. Plusieurs entrées " +
                              "correspondent.")
                     return
-                query = ("DELETE FROM courses WHERE item=%s AND "+
+                query = ("DELETE FROM shopping WHERE item=%s AND "+
                          "comment LIKE '%%s%'")
                 self.bdd_cursor.execute(query, values)
                 self.bdd.commit()
@@ -352,7 +352,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                          "Impossible de supprimer l'item. (%s)" % (err,))
                 return
         elif args[1] == "acheté":
-            query = ("SELECT COUNT(*) as nb FROM courses WHERE item=%s AND "+
+            query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND "+
                      "comment LIKE '%%s%' AND bought=0")
             values = (args[2], comment)
             try:
@@ -364,7 +364,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "Requêtes trop ambiguë. Plusieurs entrées " +
                              "correspondent.")
                     return
-                query = ("UPDATE courses SET bought=1 WHERE item=%s AND "+
+                query = ("UPDATE shopping SET bought=1 WHERE item=%s AND "+
                          "comment LIKE '%%s%' AND bought=0")
                 self.bdd_cursor.execute(query, values)
                 self.bdd.commit()
