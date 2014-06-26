@@ -101,6 +101,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("lumiere",
                       self.lumiere,
                       help_msg="lumiere (R G B)|script")
+        self.add_rule("moderation",
+                      self.moderation,
+                      help_msg="moderation [liste]")
         self.add_rule("retour",
                       self.retour,
                       help_msg="retour outil [email]")
@@ -432,6 +435,30 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.current_leds = args[1]
         else:
             raise InvalidArgs
+
+    def moderation(self, serv, author, args):
+        """Handles message to moderate listing"""
+        if len(config.authorized) != 0 and author not in config.authorized:
+            self.ans(serv, author, "Vous n'avez pas les droits requis.")
+            return
+        if len(args) > 1:
+            liste = args[1].split("@")[0]
+            query = ("SELECT id, subject, author, liste FROM moderation " +
+                     "WHERE liste=%s AND moderated=0 ORDER BY date DESC")
+            values = (liste,)
+            message = "Messages en attente pour la liste "+liste+" :"
+        else:
+            query = ("SELECT id, subject, author, liste FROM moderation " +
+                     "WHERE moderated=0 ORDER BY date DESC")
+            values = ()
+            message = "Messages en attente :"
+        self.bdd_cursor.execute(query, values)
+        self.ans(serv, author, message)
+        if len(self.bdd_cursor) == 0:
+            self.say(serv, "Aucun message.")
+            return
+        for (ident, subject, author, liste) in self.bdd_cursor:
+            self.say(serv, "["+liste"] : « "+subject+" » par "+author)
 
     def jeu(self, serv, author, args):
         """Handles game"""
