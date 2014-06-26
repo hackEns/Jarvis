@@ -275,7 +275,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             try:
                 assert(self.bdd_cursor is not None)
                 self.bdd_cursor.execute(query, values)
-                self.bdd.commit()
             except AssertionError:
                 self.ans(serv, author,
                         "Impossible d'ajouter la facture, base de données " +
@@ -311,7 +310,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     query = ("DELETE FROM budget WHERE amount=%s AND "+
                              "comment LIKE '%%s%'")
                 self.bdd_cursor.execute(query, values)
-                self.bdd.commit()
             except AssertionError:
                 self.ans(serv, author,
                         "Impossible de supprimer la facture, base de données " +
@@ -348,7 +346,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                          "bought) VALUES(%s, %s, %s, %s, 0)")
                 values = (args[2], author, comment, datetime.datetime.now())
                 self.bdd_cursor.execute(query, values)
-                self.bdd.commit()
             except AssertionError:
                 self.ans(serv, author,
                         "Impossible d'ajouter l'objet à la liste de courses, " +
@@ -376,7 +373,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 query = ("DELETE FROM shopping WHERE item=%s AND "+
                          "comment LIKE %s")
                 self.bdd_cursor.execute(query, values)
-                self.bdd.commit()
             except AssertionError:
                 self.ans(serv, author,
                         "Impossible de supprimer l'item, base de données " +
@@ -404,7 +400,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 query = ("UPDATE shopping SET bought=1 WHERE item=%s AND "+
                          "comment LIKE %s AND bought=0")
                 self.bdd_cursor.execute(query, values)
-                self.bdd.commit()
             except AssertionError:
                 self.ans(serv, author,
                          "Impossible de marquer l'item comme acheté, " +
@@ -565,7 +560,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         query = ("UPDATE borrowings SET back=1 WHERE tool=%s AND borrower=%s")
         values = (args[1], borrower)
         self.bdd_cursor.execute(query, values)
-        self.bdd.commit()
         if cursor.rowcount > 0:
             self.ans(serv, author,
                      "Emprunt de "+args[1]+" enregistré.")
@@ -578,7 +572,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         query = ("UPDATE borrowings SET back=1 WHERE id=%s")
         values = (id,)
         self.bdd_cursor.execute(query, values)
-        self.bdd.commit()
         if cursor.rowcount > 0:
             self.privmsg(author,
                          "Emprunt de "+args[1]+" enregistré.")

@@ -1,7 +1,6 @@
 # TODO
 * logs => tags, mettre dans shaarli ?
 * pygst
-* mysql pas mis à jour si modifié côté serveur
 
 # À tester
 * Emprunt avec un pseudo inexistant ? => notif donne quoi ?

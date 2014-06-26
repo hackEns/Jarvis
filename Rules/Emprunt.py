@@ -72,7 +72,6 @@ class Emprunt(Rule):
                          "WHERE back=0 AND borrower=%s AND tool=%s")
                 values = (until, borrower, tool)
             self.bdd_cursor.execute(query, values)
-            self.bdd.commit()
         except AssertionError:
             self.bot.ans(serv, author, "Impossible d'ajouter l'emprunt. (Base de données introuvable)")
             return
