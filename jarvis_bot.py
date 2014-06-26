@@ -246,11 +246,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def budget(self, serv, author, args):
         """Handles budget"""
+        if len(args) < 3:
+            raise InvalidArgs
         try:
-            amount = float(args[2].strip(" €"))
+            amount = float(args[2].strip("€"))
         except (KeyError, ValueError):
             try:
-                amount = float(args[3].strip(" €"))
+                amount = float(args[3].strip("€"))
                 if args[2] == "dépense":
                     amount = -amount
             except (KeyError, ValueError):
@@ -269,8 +271,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if args[1] == "ajoute":
             if comment == "":
                 raise InvalidArgs
-            query = ("INSERT INTO budget(id, amount, author, date, comment, budget) " +
-                    "VALUES('', %s, %s, %s, %s, %s)")
+            query = ("INSERT INTO budget(amount, author, date, comment, budget) " +
+                    "VALUES(%s, %s, %s, %s, %s)")
             values = (amount, author, datetime.datetime.now(), comment, budget)
             try:
                 assert(self.bdd_cursor is not None)
@@ -285,15 +287,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         author,
                         "Impossible d'ajouter la facture. (%s)" % (err,))
                 return
+            self.ans(serv, author, "Facture ajoutée.")
         elif args[1] == "retire":
             if budget != '':
                 query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s AND "+
-                         "comment LIKE '%%s%' AND budget=%s")
-                values = (amount, comment, budget)
+                         "comment LIKE %s AND budget=%s")
+                values = (amount, '%'+comment+'%', budget)
             else:
                 query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s AND "+
-                         "comment LIKE '%%s%'")
-                values = (amount, comment)
+                         "comment LIKE %s")
+                values = (amount, '%'+comment+'%')
             try:
                 assert(self.bdd_cursor is not None)
                 self.bdd_cursor.execute(query, values)
@@ -305,10 +308,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     return
                 if budget != '':
                     query = ("DELETE FROM budget WHERE amount=%s AND "+
-                             "comment LIKE '%%s%' AND budget=%s")
+                             "comment LIKE %s AND budget=%s")
                 else:
                     query = ("DELETE FROM budget WHERE amount=%s AND "+
-                             "comment LIKE '%%s%'")
+                             "comment LIKE %s")
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
                 self.ans(serv, author,
@@ -320,6 +323,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         author,
                         "Impossible de supprimer la facture. (%s)" % (err,))
                 return
+            self.ans(serv, author, "Facture retirée.")
         else:
             raise InvalidArgs
 
