@@ -330,17 +330,23 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if len(args) < 3:
             raise InvalidArgs
         try:
-            comment = args[3:]
+            comment = " ".join(args[3:])
         except KeyError:
             comment = ""
         if args[1] == "acheter":
-            if comment == "":
-                raise InvalidArgs
-            query = ("INSERT INTO shopping(id, item, author, comment, date, " +
-                     "bought) VALUES('', %s, %s, %s, %s, 0)")
-            values = (args[2], author, comment, datetime.datetime.now())
+            query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND "+
+                     "comment LIKE %s")
+            values = (args[2], '%'+comment+'%')
             try:
                 assert(self.bdd_cursor is not None)
+                self.bdd_cursor.execute(query, values)
+                row = self.bdd_cursor.fetchone()
+                if row[0] > 0:
+                    self.ans(serv, author, "Item déjà présent dans la liste de courses")
+                    return
+                query = ("INSERT INTO shopping(item, author, comment, date, " +
+                         "bought) VALUES(%s, %s, %s, %s, 0)")
+                values = (args[2], author, comment, datetime.datetime.now())
                 self.bdd_cursor.execute(query, values)
                 self.bdd.commit()
             except AssertionError:
@@ -353,10 +359,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         author,
                         "Impossible d'ajouter l'objet à la liste de courses. (%s)" % (err,))
                 return
+            self.ans(serv, author, "Item ajouté à la liste de courses.")
         elif args[1] == "annuler":
             query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND "+
-                     "comment LIKE '%%s%'")
-            values = (args[2], comment)
+                     "comment LIKE %s")
+            values = (args[2], '%'+comment+'%')
             try:
                 assert(self.bdd_cursor is not None)
                 self.bdd_cursor.execute(query, values)
@@ -367,7 +374,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "correspondent.")
                     return
                 query = ("DELETE FROM shopping WHERE item=%s AND "+
-                         "comment LIKE '%%s%'")
+                         "comment LIKE %s")
                 self.bdd_cursor.execute(query, values)
                 self.bdd.commit()
             except AssertionError:
@@ -380,10 +387,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                          author,
                          "Impossible de supprimer l'item. (%s)" % (err,))
                 return
+            self.ans(serv, author, "Item supprimé de la liste de courses.")
         elif args[1] == "acheté":
             query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND "+
-                     "comment LIKE '%%s%' AND bought=0")
-            values = (args[2], comment)
+                     "comment LIKE %s AND bought=0")
+            values = (args[2], '%'+comment+'%')
             try:
                 assert(self.bdd_cursor is not None)
                 self.bdd_cursor.execute(query, values)
@@ -394,7 +402,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "correspondent.")
                     return
                 query = ("UPDATE shopping SET bought=1 WHERE item=%s AND "+
-                         "comment LIKE '%%s%' AND bought=0")
+                         "comment LIKE %s AND bought=0")
                 self.bdd_cursor.execute(query, values)
                 self.bdd.commit()
             except AssertionError:
@@ -407,6 +415,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         author,
                         "Impossible de marquer l'item comme acheté. (%s)" % (err,))
                 return
+            self.ans(serv, author, "Item marqué comme acheté.")
         else:
             raise InvalidArgs
 
