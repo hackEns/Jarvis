@@ -94,7 +94,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("lien",
                       self.lien,
                       help_msg=("lien (dernier | " +
-                                "(supprime|ignore|affiche) [id|permalien] | "))
+                                "(supprime|cache|affiche) [id|permalien] | "))
         self.add_rule("log",
                       self.log,
                       help_msg="log debut ... fin")
@@ -627,8 +627,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "Status code : "+str(r.status_code))
                 return False
 
-        if len(args) > 1 and (args[1] in ["ignore", "affiche", "supprime"]):
-            if args[1] == "ignore":
+        if len(args) > 1 and (args[1] in ["cache", "ignore", "affiche", "supprime"]):
+            if args[1] == "cache" or args[1] == "ignore":
                 msg = "Liens rendus privés."
                 private = 1
             elif args[1] == "affiche":
