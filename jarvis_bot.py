@@ -448,7 +448,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def moderation(self, serv, author, args):
         """Handles message to moderate listing"""
-        if len(config.authorized) != 0 and author not in config.authorized:
+        if len(config.admin) != 0 and author not in config.admins:
             self.ans(serv, author, "Vous n'avez pas les droits requis.")
             return
         if len(args) > 1:
@@ -468,7 +468,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.say(serv, "Aucun message.")
             return
         for (ident, subject, author, liste) in self.bdd_cursor:
-            self.say(serv, "["+liste"] : « "+subject+" » par "+author)
+            self.say(serv, "["+liste+"] : « "+subject+" » par "+author)
 
     def jeu(self, serv, author, args):
         """Handles game"""
