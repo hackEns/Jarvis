@@ -176,6 +176,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     self.aide(serv, author, msg)
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
+        elif(msg[0].strip().lower() == "aziz" and
+             (config.authorized == [] or author in config.authorized)):
+            msg = shlex.split(msg[1])
+            msg[0] = msg[0].lower()
+            if msg[0] == "lumiere":
+                self.historique.add(author, msg[0])
+                try:
+                    self.rules[msg[0]]['action'](serv, author, msg)
+                except InvalidArgs:
+                    self.aide(serv, author, msg)
         self.log.add_cache(author, raw_msg)  # Log each line
 
     def on_links(self, serv, author, urls):
