@@ -250,15 +250,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             raise InvalidArgs
         try:
             amount = float(args[2].strip("€"))
+            first_index = 3
         except (KeyError, ValueError):
             try:
                 amount = float(args[3].strip("€"))
                 if args[2] == "dépense":
                     amount = -amount
+                first_index = 4
             except (KeyError, ValueError):
                 raise InvalidArgs
         try:
-            comment = args[3:]
+            comment = args[first_index:]
             if comment[0].startswith("budget="):
                 budget = comment[0].replace("budget=", '')
                 del(comment[0])
