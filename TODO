@@ -2,10 +2,10 @@
 * logs => Elie, tags, mettre dans shaarli ?
 * Beagleboard
 * pygst
-* Listes customs pour le budget => webinterface
 
 # À tester
 * Emprunt avec un pseudo inexistant ? => notif donne quoi ?
 * update
 * budget
 * courses
+* emprunts
