@@ -69,12 +69,16 @@ def atx(etat):
 
 
 def dis(something):
-    subprocess.call(["espeak",
-                     "-vfrench+m5",
-                     "-p 5",
-                     "-s 50",
-                     "-a 200",
-                     something])
+    try:
+        return subprocess.call(["espeak",
+                         "-vfrench+m5",
+                         "-p 5",
+                         "-s 50",
+                         "-a 200",
+                         something])
+    except FileNotFoundError:
+        print("Impossible de parler : espeak n'est peut-être pas installé")
+        return False
 
 
 if __name__ == '__main__':

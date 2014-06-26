@@ -1,13 +1,11 @@
 # TODO
-* logs => Elie
+* logs => Elie, tags, mettre dans shaarli ?
 * Beagleboard
-* "jarvis: emprunt outil until"
-    => TODO :
-        * gestion des retours
-* budget
-* liste de courses
-* update ?
 * pygst
+* Listes customs pour le budget => webinterface
 
 # À tester
 * Emprunt avec un pseudo inexistant ? => notif donne quoi ?
+* update
+* budget
+* courses
