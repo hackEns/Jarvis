@@ -94,7 +94,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("lien",
                       self.lien,
                       help_msg=("lien (dernier | " +
-                                "(supprime|cache|affiche) [id|permalien] | "))
+                                "(supprime|cache|affiche) [id|permalien]"))
         self.add_rule("log",
                       self.log,
                       help_msg="log debut ... fin")
@@ -141,6 +141,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
         if self.error is not None:
             self.say(serv, self.error)
+        serv.privmsg("aazf", "identify ")
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
@@ -558,20 +559,32 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         args = [i.lower() for i in args]
         if len(args) < 2:
             raise InvalidArgs
-        if len(args) > 3:
+        if len(args) > 2:
             if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
-                        args[3]) is not None:
-                borrower = args[3]
+                        args[2]) is not None:
+                borrower = args[2]
             else:
                 raise InvalidArgs
         else:
             borrower = author
         query = ("UPDATE borrowings SET back=1 WHERE tool=%s AND borrower=%s")
         values = (args[1], borrower)
-        self.bdd_cursor.execute(query, values)
-        if cursor.rowcount > 0:
+        try:
+            assert(self.bdd_cursor is not None)
+            self.bdd_cursor.execute(query, values)
+        except AssertionError:
             self.ans(serv, author,
-                     "Emprunt de "+args[1]+" enregistré.")
+                        "Impossible de rendre l'outil, " +
+                        "base de données injoignable.")
+            return
+        except mysql.connector.errors.Error as err:
+            self.ans(serv,
+                    author,
+                    "Impossible de rendre l'objet. (%s)" % (err,))
+            return
+        if self.bdd_cursor.rowcount > 0:
+            self.ans(serv, author,
+                     "Retour de "+args[1]+" enregistré.")
         else:
             self.ans(serv, author,
                      "Emprunt introuvable.")
@@ -580,10 +593,22 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Handles end of borrowings with private answers to notifications"""
         query = ("UPDATE borrowings SET back=1 WHERE id=%s")
         values = (id,)
-        self.bdd_cursor.execute(query, values)
-        if cursor.rowcount > 0:
+        try:
+            assert(self.bdd_cursor is not None)
+            self.bdd_cursor.execute(query, values)
+        except AssertionError:
+            self.ans(serv, author,
+                        "Impossible de rendre l'outil, " +
+                        "base de données injoignable.")
+            return
+        except mysql.connector.errors.Error as err:
+            self.ans(serv,
+                    author,
+                    "Impossible de rendre l'objet. (%s)" % (err,))
+            return
+        if self.bdd_cursor.rowcount > 0:
             self.privmsg(author,
-                         "Emprunt de "+args[1]+" enregistré.")
+                         "Retour de "+args[1]+" enregistré.")
         else:
             self.privmsg(author,
                          "Emprunt introuvable.")
