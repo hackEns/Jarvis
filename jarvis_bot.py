@@ -81,7 +81,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="disclaimer")
         self.add_rule("emprunt",
                       self.emprunt,
-                      help_msg="emprunt outil \"jj/dd hh\" [email]")
+                      help_msg="emprunt outil \"jj/mm hh\" [email]")
         self.add_rule("historique",
                       self.historique,
                       help_msg="historique nb_lignes|(start end)")
@@ -237,7 +237,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         args = [i.lower() for i in args]
         self.ans(serv, author, config.desc + " Commandes disponibles :")
         if len(args) > 1 and args[0] == "aide":
-            self.say(serv, self.rules[args[1]]['help'])
+            if args[1] in self.rules:
+                self.say(serv, self.rules[args[1]]['help'])
+            else:
+                self.say(serv, "Je n'ai pas compris…")
         elif args[0] != "aide" and args[0] in self.rules:
             self.say(serv, self.rules[args[0]]['help'])
         else:
