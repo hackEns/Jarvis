@@ -48,6 +48,13 @@ log_save_buffer_size = 200 # Buffer size to save cache on disk
 log_file = "jarvis.log"
 log_all_file = "jarvis.all.log"
 
+# API
+api_port = 2424
+api_key = ""
+ssl = False
+keyfile = ""
+certfile = ""
+
 # Misc
 history_length = 1000
 history_no_doublons = True
