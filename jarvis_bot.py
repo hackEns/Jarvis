@@ -458,7 +458,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def moderation(self, serv, author, args):
         """Handles message to moderate listing"""
-        if len(config.admin) != 0 and author not in config.admins:
+        if len(config.admins) != 0 and author not in config.admins:
             self.ans(serv, author, "Vous n'avez pas les droits requis.")
             return
         if len(args) > 1:
@@ -466,17 +466,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             query = ("SELECT id, subject, author, liste FROM moderation " +
                      "WHERE liste=%s AND moderated=0 ORDER BY date DESC")
             values = (liste,)
-            message = "Messages en attente pour la liste "+liste+" :"
+            message = "Messages en attente de modération pour la liste "+liste+" :"
         else:
             query = ("SELECT id, subject, author, liste FROM moderation " +
                      "WHERE moderated=0 ORDER BY date DESC")
             values = ()
-            message = "Messages en attente :"
+            message = "Messages en attente de modération :"
         self.bdd_cursor.execute(query, values)
-        self.ans(serv, author, message)
-        if len(self.bdd_cursor) == 0:
-            self.say(serv, "Aucun message.")
+        if self.bdd_cursor.rowcount <= 0:
+            self.ans(serv, author, "Aucun message en attente de modération.")
             return
+        self.ans(serv, author, message)
         for (ident, subject, author, liste) in self.bdd_cursor:
             self.say(serv, "["+liste+"] : « "+subject+" » par "+author)
 
