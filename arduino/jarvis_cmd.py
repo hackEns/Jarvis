@@ -3,15 +3,18 @@
 import config
 import os
 import sys
-import wiringpi2
+import serial
 import struct
 import subprocess
-import time
-
-wiringpi2.wiringPiSetup()
 
 
-def send(ser, mode, msg): # TO REMOVE
+def initSerial(path):
+    os.system("stty -hup -F " + path)
+    os.system("stty -hup -F " + path)
+    return serial.Serial(path, 115200)
+
+
+def send(ser, mode, msg):
     ser.readline()
     ser.write(chr(mode).encode("ascii"))
     ser.flush()
@@ -27,9 +30,13 @@ def camera(angle):
         return False
 
     towrite = int(127+int(127*float(angle)/180))
-    wiringpi2.pinMode(1, wiringpi2.PWM_OUTPUT)
-    wiringpi2.pwmWrite(1, towrite)
-    time.sleep(0.100)
+    try:
+        ser = initSerial(config.cam_path)
+        send(ser, 1, towrite)
+    except (serial.SerialTimeoutException,
+            serial.SerialException):
+        print("Impossible de régler la caméra.")
+        return False
 
 
 def lumiere(r, v, b):
@@ -41,19 +48,24 @@ def lumiere(r, v, b):
         else:
             msg.append(int(c/2))
 
-    ser = wiringpi2.serialOpen(config.lum_path, 115200)
-    for j in msg:
-        wiringpi2.serialPuts(ser, struct.pack("I", j))
-    wiringpi2.serialClose(ser)
+    try:
+        ser = initSerial(config.lum_path)
+        for j in msg:
+            ser.write(struct.pack("I", j))
+    except (serial.SerialTimeoutException,
+            serial.SerialException):
+        print("Impossible de régler la LED.")
+        return False
 
 
 def atx(etat):
-    PIN_ATX = 7
-    PIN2_ATX = 8
-    wiringpi2.pinMode(PIN_ATX, 1)
-    wiringpi2.pinMode(PIN2_ATX, 1)
-    wiringpi2.digitalWrite(PIN_ATX, etat)
-    wiringpi2.digitalWrite(PIN2_ATX, etat)
+    try:
+        ser = initSerial(config.atx_path)
+        send(ser, 2, etat)
+    except (serial.SerialTimeoutException,
+            serial.SerialException):
+        print("Impossible de régler l'ATX.")
+        return False
 
 
 def dis(something):

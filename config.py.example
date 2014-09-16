@@ -32,6 +32,9 @@ stream_url = ""
 stream_genre = ""
 oggfwd_path = ""
 
+# Controller : "raspi" or "arduino". Specify wether everything is on the raspi or if there is an external micro-controller.
+controller = "raspi"
+
 # Arduino parameters
 cam_path = "/dev/ttyACM0"
 atx_path = cam_path
@@ -47,13 +50,6 @@ log_cache_size = 200 # Number of lines that log instruction can access
 log_save_buffer_size = 200 # Buffer size to save cache on disk
 log_file = "jarvis.log"
 log_all_file = "jarvis.all.log"
-
-# API
-api_port = 2424
-api_key = ""
-ssl = False
-keyfile = ""
-certfile = ""
 
 # Misc
 history_length = 1000

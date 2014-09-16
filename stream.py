@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # From https://github.com/iXce/Printrun_stream
 
+"""
+Script to handle the webcam streaming.
+"""
 
 import os, sys
 

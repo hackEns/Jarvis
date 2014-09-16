@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+This is the code for the jarvis bot on IRC. It calls jarvis_cmd functions to
+perform actions.
+"""
+
 import config
 import datetime
 from email.mime.text import MIMEText

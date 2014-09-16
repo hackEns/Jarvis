@@ -12,6 +12,7 @@ Requirements
  * oggfwd
  * python-mysql-connector
  * requests
+ * TODO
 
 
 Installation
@@ -27,6 +28,14 @@ Copy `config.py.example` to `config.py` and then edit it.
 
 Run `jarvis_bot.py`
 
+# TODO
+
 
 Coding Style
 ------------
+
+
+TODO
+----
+
+Add comments.
