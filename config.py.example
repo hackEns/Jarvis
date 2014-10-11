@@ -46,8 +46,8 @@ admins = []
 # Log
 log_cache_size = 200 # Number of lines that log instruction can access
 log_save_buffer_size = 200 # Buffer size to save cache on disk
-log_file = "jarvis.log"
-log_all_file = "jarvis.all.log"
+log_file = "data/jarvis.log"
+log_all_file = "data/jarvis.all.log"
 
 # Misc
 history_length = 1000

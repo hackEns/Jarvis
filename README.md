@@ -17,7 +17,7 @@ Jarvis can be easily installed on a Raspberry Pi, starting from an up-to-date Ra
 7. Jarvis does not automatically export the GPIO pins to prevent it from running as `root`. So you should `gpio export PIN out` for the pins you use (1 and 7 by defautl).
 7. Run `jarvis_bot.py` to start Jarvis.
 
-*Note :* Jarvis requires a MySQL database to be used, and a webserver to serve the web visualisation (repo [Jarvis web](https://github.com/hackEns/Jarvis_web)). As our webserver does not run on the Raspberry Pi, the above scripts do not include the setup for the webserver and the MySQL database. You should install and set them yourself.
+*Note :* Jarvis requires a MySQL database to be used, and a webserver to serve the web visualisation (repo [Jarvis web](https://github.com/hackEns/Jarvis_web)). As our webserver does not run on the Raspberry Pi, the above scripts do not include the setup for the webserver and the MySQL database. You should install and set them yourself. `system/jarvis.sql` contains all the necessary information to setup the database and tables.
 
 
 ## Files and folders
@@ -29,7 +29,6 @@ Jarvis can be easily installed on a Raspberry Pi, starting from an up-to-date Ra
 * `jarvis.all.log` (created by Jarvis) is the complete log of the watched channel.
 * `jarvis_bot.py` is the main script, which serves the bot.
 * `jarvis_cmd.py` is a collection of functions to translate Jarvis actions to GPIO actions etc.
-* `jarvis.sql` is a SQL file which will allow you to create the necessary tables for Jarvis.
 * `Rules` contains a set of scripts for the various Jarvis actions.
 * `STL export` contains 3D models for our setup.
 * `stream.py` is the script used to handle the cam streaming.
