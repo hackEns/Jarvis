@@ -51,16 +51,6 @@ CREATE TABLE IF NOT EXISTS `budget` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3 ;
 
 --
--- Dumping data for table `budget`
---
-
-INSERT INTO `budget` (`id`, `amount`, `author`, `date`, `comment`, `budget`) VALUES
-(1, 200, 'test', '2014-06-22 17:35:05', 'testbidule', ''),
-(2, -100, 'test', '2014-06-21 17:35:05', 'testbidule', '');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `shopping`
 --
 
@@ -73,15 +63,6 @@ CREATE TABLE IF NOT EXISTS `shopping` (
   `bought` tinyint(4) NOT NULL
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3 ;
 
---
--- Dumping data for table `shopping`
---
-
-INSERT INTO `shopping` (`id`, `item`, `author`, `comment`, `date`, `bought`) VALUES
-(1, 'test', 'bidule', 'Je propose d''acheter chose.', '2014-06-22 19:40:56', 0),
-(2, 'test', 'bidule', 'Je propose d''acheter chose2.', '2014-06-22 19:41:04', 1);
-
---
 -- Indexes for dumped tables
 --
 

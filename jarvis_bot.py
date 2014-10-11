@@ -9,6 +9,7 @@ import config
 import datetime
 from email.mime.text import MIMEText
 import irc.bot as ircbot
+import irc.connection
 import jarvis_cmd
 import mysql.connector
 import os
@@ -17,6 +18,7 @@ import re
 import requests
 import shlex
 import smtplib
+import ssl
 import subprocess
 import sys
 
@@ -25,10 +27,18 @@ from Rules import *
 
 class JarvisBot(ircbot.SingleServerIRCBot):
     def __init__(self):
-        ircbot.SingleServerIRCBot.__init__(self, [(config.server,
-                                                   config.port)],
-                                           config.nick,
-                                           config.desc)
+        if not config.use_ssl:
+            ircbot.SingleServerIRCBot.__init__(self, [(config.server,
+                                                       config.port)],
+                                               config.nick,
+                                               config.desc)
+        else:
+            self.ssl_factory = ssl_factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
+            ircbot.SingleServerIRCBot.__init__(self, [(config.server,
+                                                       config.port)],
+                                               config.nick,
+                                               config.desc,
+                                               connect_factory=self.ssl_factory)
         self.version_nb = "0.2"
         self.error = None
         self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
@@ -39,6 +49,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.bdd = mysql.connector.connect(**config.mysql)
             self.bdd_cursor = self.bdd.cursor()
         except mysql.connector.Error as err:
+            if config.debug:
+                print("Debug : " + str(err))
             if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
                 self.error = "Accès refusé à la BDD."
             elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
@@ -70,14 +82,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="atx on|off")
         self.add_rule("budget",
                       self.budget,
-                      help_msg="budget (ajoute|retire) [dépense|crédit] "+
+                      help_msg="budget (ajoute|retire) [dépense|crédit] " +
                       "montant [budget=BUDGET] commentaire")
         self.add_rule("camera",
                       self.camera,
                       help_msg="camera ALIAS|ANGLE")
         self.add_rule("courses",
                       self.courses,
-                      help_msg="courses (acheter|annuler|acheté) item [comment]")
+                      help_msg="courses (acheter|annuler|acheté) item [commentaire]")
         self.add_rule("dis",
                       self.dis,
                       help_msg="dis \"quelque chose\"")
@@ -89,7 +101,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="emprunt outil \"jj/mm hh\" [email]")
         self.add_rule("historique",
                       self.historique,
-                      help_msg="historique nb_lignes|(start end)")
+                      help_msg="historique nb_lignes|(début fin)")
         self.add_rule("info",
                       self.info,
                       help_msg="info [atx|camera|leds|stream]")
@@ -99,10 +111,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("lien",
                       self.lien,
                       help_msg=("lien (dernier | " +
-                                "(supprime|cache|affiche) [id|permalien]"))
+                                "(supprime|cache|affiche) [id|permalien])"))
         self.add_rule("log",
                       self.log,
-                      help_msg="log debut ... fin")
+                      help_msg="log début ... fin")
         self.add_rule("lumiere",
                       self.lumiere,
                       help_msg="lumiere (R G B)|script")
@@ -179,6 +191,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 try:
                     self.rules[msg[0]]['action'](serv, author, msg)
                 except InvalidArgs:
+                    if config.debug:
+                        print("Debug : " + str(msg))
                     self.aide(serv, author, msg)
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
@@ -191,6 +205,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 try:
                     self.rules[msg[0]]['action'](serv, author, msg)
                 except InvalidArgs:
+                    if config.debug:
+                        print("Debug : " + str(msg))
                     self.aide(serv, author, msg)
         self.log.add_cache(author, raw_msg)  # Log each line
 
@@ -199,7 +215,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         for url in set(urls):
             if url.startswith(config.shaarli_url):
                 continue
-            base_params = (("do", "api"), ("token", config.shaarli_key))
+            base_params = (("do", "api"), ("token", config.shaarli_token))
             r = requests.get(config.shaarli_url,
                              params=base_params + (("url", url),))
             if r.text != "" and len(r.json()) > 0:
@@ -267,6 +283,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     amount = -amount
                 first_index = 4
             except (KeyError, ValueError):
+                if config.debug:
+                    print("Debug : " + str(args))
                 raise InvalidArgs
         try:
             comment = args[first_index:]
@@ -279,6 +297,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         except KeyError:
             comment = ""
             budget = ""
+        if budget == "":
+            # If no budget specified, put it in current year
+            year = datetime.datetime.now().year
+            budget = str(year) + " / " + str(year + 1)
         if args[1] == "ajoute":
             if comment == "":
                 raise InvalidArgs
@@ -289,11 +311,15 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 assert(self.bdd_cursor is not None)
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
+                if config.debug:
+                    print("Debug : Database disconnected.")
                 self.ans(serv, author,
                         "Impossible d'ajouter la facture, base de données " +
                         "injoignable.")
                 return
             except mysql.connector.errors.Error as err:
+                if config.debug:
+                    print("Debug : " + str(err))
                 self.ans(serv,
                         author,
                         "Impossible d'ajouter la facture. (%s)" % (err,))
@@ -325,11 +351,15 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "comment LIKE %s")
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
+                if config.debug:
+                    print("Debug : Database disconnected.")
                 self.ans(serv, author,
                         "Impossible de supprimer la facture, base de données " +
                         "injoignable.")
                 return
             except mysql.connector.errors.Error as err:
+                if config.debug:
+                    print("Debug : " + str(err))
                 self.ans(serv,
                         author,
                         "Impossible de supprimer la facture. (%s)" % (err,))
@@ -362,18 +392,22 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 values = (args[2], author, comment, datetime.datetime.now())
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
+                if config.debug:
+                    print("Debug : Database disconnected")
                 self.ans(serv, author,
                         "Impossible d'ajouter l'objet à la liste de courses, " +
                         "base de données injoignable.")
                 return
             except mysql.connector.errors.Error as err:
+                if config.debug:
+                    print("Debug : " + str(err))
                 self.ans(serv,
                         author,
                         "Impossible d'ajouter l'objet à la liste de courses. (%s)" % (err,))
                 return
             self.ans(serv, author, "Item ajouté à la liste de courses.")
         elif args[1] == "annuler":
-            query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND "+
+            query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
                      "comment LIKE %s")
             values = (args[2], '%'+comment+'%')
             try:
@@ -389,11 +423,15 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                          "comment LIKE %s")
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
+                if config.debug:
+                    print("Debug : Database disconnected")
                 self.ans(serv, author,
                         "Impossible de supprimer l'item, base de données " +
                         "injoignable.")
                 return
             except mysql.connector.errors.Error as err:
+                if config.debug:
+                    print("Debug : " + str(err))
                 self.ans(serv,
                          author,
                          "Impossible de supprimer l'item. (%s)" % (err,))
@@ -416,11 +454,15 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                          "comment LIKE %s AND bought=0")
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
+                if config.debug:
+                    print("Debug : Database disconnected")
                 self.ans(serv, author,
                          "Impossible de marquer l'item comme acheté, " +
                          "base de données injoignable.")
                 return
             except mysql.connector.errors.Error as err:
+                if config.debug:
+                    print("Debug : " + str(err))
                 self.ans(serv,
                         author,
                         "Impossible de marquer l'item comme acheté. (%s)" % (err,))
@@ -455,6 +497,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 else:
                     self.ans(serv, author, "Impossible de régler les LEDs.")
             except (AssertionError, ValueError):
+                if config.debug:
+                    print("Debug : " + str(msg))
                 raise InvalidArgs
         elif len(args) == 2:
             script = os.path.join(self.basepath+"data/leds", args[1])+".py"
@@ -509,6 +553,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def stream(self, serv, author, args):
         """Handles stream transmission"""
         args = [i.lower() for i in args]
+        if len(args) < 2:
+            raise InvalidArgs
         if args[1] == "on":
             if self.oggfwd is not None and self.streamh is not None:
                 self.ans(serv, author,
@@ -578,11 +624,15 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             assert(self.bdd_cursor is not None)
             self.bdd_cursor.execute(query, values)
         except AssertionError:
+            if config.debug:
+                print("Debug : Database disconnected")
             self.ans(serv, author,
                         "Impossible de rendre l'outil, " +
                         "base de données injoignable.")
             return
         except mysql.connector.errors.Error as err:
+            if config.debug:
+                print("Debug : " + str(err))
             self.ans(serv,
                     author,
                     "Impossible de rendre l'objet. (%s)" % (err,))
@@ -602,11 +652,15 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             assert(self.bdd_cursor is not None)
             self.bdd_cursor.execute(query, values)
         except AssertionError:
+            if config.debug:
+                print("Debug : Database disconnected")
             self.ans(serv, author,
                         "Impossible de rendre l'outil, " +
                         "base de données injoignable.")
             return
         except mysql.connector.errors.Error as err:
+            if config.debug:
+                print("Debug : " + str(err))
             self.ans(serv,
                     author,
                     "Impossible de rendre l'objet. (%s)" % (err,))
@@ -629,8 +683,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             assert(self.bdd_cursor is not None)
             self.bdd_cursor.execute(query,
                                     (now + delta, delta, now))
-        except (AssertionError, mysql.connector.errors.Error):
-            serv.say(serv,
+        except AssertionError:
+            if config.debug:
+                print("Debug : Database disconnected")
+            self.say(serv,
+                     "Impossible de récupérer les notifications d'emprunts.")
+            return
+        except mysql.connector.errors.Error as err:
+            if config.debug:
+                print("Debug : " + str(err))
+            self.say(serv,
                      "Impossible de récupérer les notifications d'emprunts.")
             return
         for (id_field, borrower, tool, from_field, until) in self.bdd_cursor:
@@ -659,7 +721,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def lien(self, serv, author, args):
         """Handles links managements through Shaarli API"""
-        base_params = (("do", "api"), ("token", config.shaarli_key))
+        base_params = (("do", "api"), ("token", config.shaarli_token))
         args[1] = args[1].lower()
         if len(args) > 1 and args[1] == "dernier":
             self.ans(serv, author, self.last_added_link)

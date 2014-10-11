@@ -1,5 +1,7 @@
 config.py
-data/history
+startup.sh
+start_ssh.sh
+data/
 __pycache__
 *.pyc
 *~

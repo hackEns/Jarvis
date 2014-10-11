@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # From https://github.com/iXce/Printrun_stream
 
 """
@@ -7,11 +7,12 @@ Script to handle the webcam streaming.
 
 import os, sys
 
-import xmlrpc.client as xmlrpcclient
+#import xmlrpc.client as xmlrpcclient
+import xmlrpclib
 import threading
 import datetime
 
-rpc = xmlrpcclient.ServerProxy('http://localhost:7978')
+rpc = xmlrpclib.ServerProxy('http://localhost:7978')
 
 import io
 import matplotlib as mpl

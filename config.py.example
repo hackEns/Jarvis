@@ -1,6 +1,7 @@
 # IRC parameters
 server = ""
 port = 6667
+use_ssl = False
 channel = ""
 nick = "jarvis"
 desc = "Jarvis, au rapport !"
@@ -32,13 +33,10 @@ stream_url = ""
 stream_genre = ""
 oggfwd_path = ""
 
-# Controller : "raspi" or "arduino". Specify wether everything is on the raspi or if there is an external micro-controller.
-controller = "raspi"
-
-# Arduino parameters
-cam_path = "/dev/ttyACM0"
-atx_path = cam_path
-lum_path = "/dev/ttyUSB0"
+# Pins
+# Uses BCM numbering
+pin_cam = 18
+pin_atx = 4
 
 # Access control
 authorized = []

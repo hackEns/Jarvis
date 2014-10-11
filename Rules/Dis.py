@@ -12,7 +12,8 @@ class Dis(Rule):
         """Say something"""
         if len(args) > 1:
             for something in args[1:]:
-                if self.cmd.dis(something):
+                returncode = self.cmd.dis(something)
+                if returncode is not False and returncode == 0:
                     self.bot.ans(serv, author, something)
                 else:
                     self.bot.ans(serv, author, "Je n'arrive plus à parler…")

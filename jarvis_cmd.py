@@ -8,7 +8,7 @@ import struct
 import subprocess
 import time
 
-wiringpi2.wiringPiSetup()
+wiringpi2.wiringPiSetupSys()
 
 
 def send(ser, mode, msg): # TO REMOVE
@@ -27,8 +27,8 @@ def camera(angle):
         return False
 
     towrite = int(127+int(127*float(angle)/180))
-    wiringpi2.pinMode(1, wiringpi2.PWM_OUTPUT)
-    wiringpi2.pwmWrite(1, towrite)
+    #wiringpi2.pinMode(PIN_CAM, wiringpi2.PWM_OUTPUT)
+    wiringpi2.pwmWrite(jarvis.pin_cam, towrite)
     time.sleep(0.100)
 
 
@@ -48,12 +48,11 @@ def lumiere(r, v, b):
 
 
 def atx(etat):
-    PIN_ATX = 7
-    PIN2_ATX = 8
-    wiringpi2.pinMode(PIN_ATX, 1)
-    wiringpi2.pinMode(PIN2_ATX, 1)
-    wiringpi2.digitalWrite(PIN_ATX, etat)
-    wiringpi2.digitalWrite(PIN2_ATX, etat)
+    #wiringpi2.pinMode(PIN_ATX, 1)
+    wiringpi2.digitalWrite(config.pin_atx, etat)
+
+def atx_status():
+    return wiringpi2.digitalRead(config.pin_atx_status)
 
 
 def dis(something):
