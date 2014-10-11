@@ -27,7 +27,6 @@ def camera(angle):
         return False
 
     towrite = int(127+int(127*float(angle)/180))
-    #wiringpi2.pinMode(PIN_CAM, wiringpi2.PWM_OUTPUT)
     wiringpi2.pwmWrite(jarvis.pin_cam, towrite)
     time.sleep(0.100)
 
@@ -48,7 +47,6 @@ def lumiere(r, v, b):
 
 
 def atx(etat):
-    #wiringpi2.pinMode(PIN_ATX, 1)
     wiringpi2.digitalWrite(config.pin_atx, etat)
 
 def atx_status():

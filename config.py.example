@@ -34,9 +34,13 @@ stream_genre = ""
 oggfwd_path = ""
 
 # Pins
-# Uses BCM numbering
+# Uses BCM numbering, contrary to the `gpio` command
+# Pin to control the camera, PWM to a servo
 pin_cam = 18
+# Pin to control the ATX, connected to the green plug on the ATX plug
 pin_atx = 4
+# Pin to get the ATX status, connected to any 5V on the ATX
+pin_atx_status = 17
 
 # Access control
 authorized = []
