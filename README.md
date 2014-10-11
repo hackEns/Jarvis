@@ -31,6 +31,7 @@ Jarvis can be easily installed on a Raspberry Pi, starting from an up-to-date Ra
 * `jarvis_cmd.py` is a collection of functions to translate Jarvis actions to GPIO actions etc.
 * `jarvis.sql` is a SQL file which will allow you to create the necessary tables for Jarvis.
 * `Rules` contains a set of scripts for the various Jarvis actions.
-* `stream.py` is the script used to handle the cam streaming.
 * `STL export` contains 3D models for our setup.
+* `stream.py` is the script used to handle the cam streaming.
+* `system` contains the scripts necessary to setup Jarvis.
 * `updater.sh` is a bash script called to update jarvis.
