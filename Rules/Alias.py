@@ -2,11 +2,11 @@ import os
 
 from ._shared import *
 
+
 class Alias(Rule):
     """Handles aliases"""
 
-    def __init__(self, bot, config, basepath):
-        self.config = config
+    def __init__(self, bot, basepath):
         self.bot = bot
         self.basepath = basepath
         self.aliases = self.read_alias()
@@ -20,12 +20,12 @@ class Alias(Rule):
             for d in doublons:
                 self.aliases.remove(d)
             self.aliases.append({"type": args[2],
-                               "name": args[3],
-                               "value": args[4]})
+                                 "name": args[3],
+                                 "value": args[4]})
             self.write_alias()
             self.bot.ans(serv, author,
-                     "Nouvel alias ajouté : " +
-                     "{"+args[2]+", "+args[3]+", "+args[4]+"}")
+                         "Nouvel alias ajouté : " +
+                         "{"+args[2]+", "+args[3]+", "+args[4]+"}")
             return
         elif len(args) > 1:
             aliases = [i for i in self.aliases if i['type'] == args[1]]
@@ -35,7 +35,7 @@ class Alias(Rule):
             types = set([i['type'] for i in aliases])
             for i in types:
                 self.bot.ans(serv, author,
-                         "Liste des alias disponibles pour "+i+" :")
+                             "Liste des alias disponibles pour "+i+" :")
                 to_say = ""
                 for j in [k for k in self.aliases if k['type'] == i]:
                     to_say += "{"+j['name']+", "+j['value']+"}, "
@@ -68,5 +68,3 @@ class Alias(Rule):
 
     def close(self):
         pass
-
-

@@ -3,11 +3,11 @@ import re
 import mysql
 from ._shared import *
 
+
 class Emprunt(Rule):
     """Handles tools borrowings"""
 
-    def __init__(self, bot, config, bdd, bdd_cursor):
-        self.config = config
+    def __init__(self, bot, bdd, bdd_cursor):
         self.bot = bot
         self.bdd = bdd
         self.bdd_cursor = bdd_cursor
@@ -64,8 +64,8 @@ class Emprunt(Rule):
             row = self.bdd_cursor.fetchone()
             if row[0] > 0:
                 self.bot.ans(serv,
-                         author,
-                         "Il y a déjà un emprunt en cours, mise à jour.")
+                             author,
+                             "Il y a déjà un emprunt en cours, mise à jour.")
                 query = ("UPDATE borrowings" +
                          "(id, borrower, tool, `date_from`, until, back)" +
                          "SET until=%s " +
@@ -73,7 +73,10 @@ class Emprunt(Rule):
                 values = (until, borrower, tool)
             self.bdd_cursor.execute(query, values)
         except AssertionError:
-            self.bot.ans(serv, author, "Impossible d'ajouter l'emprunt. (Base de données introuvable)")
+            self.bot.ans(serv,
+                         author,
+                         "Impossible d'ajouter l'emprunt. " +
+                         "(Base de données introuvable)")
             return
         except mysql.connector.errors.Error as err:
             self.bot.ans(serv,
@@ -88,10 +91,9 @@ class Emprunt(Rule):
                 return str(number)
 
         self.bot.ans(serv, author,
-                 "Emprunt de "+tool+" jusqu'au " +
-                 padding(day)+"/"+padding(month)+" à "+padding(hour)+"h noté.")
+                     "Emprunt de "+tool+" jusqu'au " +
+                     padding(day) + "/" + padding(month) + " à " +
+                     padding(hour) + "h noté.")
 
     def close(self):
         pass
-
-

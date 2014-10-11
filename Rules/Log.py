@@ -1,7 +1,8 @@
-from collections import deque # Fifo for log cache
+from collections import deque  # Fifo for log cache
 from datetime import datetime
 
 from ._shared import *
+
 
 class Log(Rule):
     """Log interesting (or not) discussion on the chan"""
@@ -9,19 +10,25 @@ class Log(Rule):
     def __init__(self, bot, config):
         self.config = config
         self.bot = bot
-        self.log_cache = deque("", config.log_cache_size)
+        self.log_cache = deque("", self.config.log_cache_size)
         self.log_save_buffer = ""
         self.log_save_buffer_count = 0
 
-
     def add_cache(self, author, msg):
-        """Add line to log cache. If cache is full, last line is append to save buffer which is on its turn flushed to disk if full"""
+        """
+        Add line to log cache. If cache is full,
+        last line is append to save buffer which
+        is on its turn flushed to disk if full
+        """
         if len(self.log_cache) >= self.config.log_cache_size:
             self.cache_to_buffer()
             if self.log_save_buffer_count > self.config.log_save_buffer_size:
                 self.flush_buffer()
 
-        self.log_cache.appendleft((datetime.now().hour, datetime.now().minute, author, msg))
+        self.log_cache.appendleft((datetime.now().hour,
+                                   datetime.now().minute,
+                                   author,
+                                   msg))
 
     def cache_to_buffer(self):
         """Pop a line from log cache and append it to save buffer"""
@@ -76,5 +83,3 @@ class Log(Rule):
 
     def close(self):
         self.flush_all()
-
-

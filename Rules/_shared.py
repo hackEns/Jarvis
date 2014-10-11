@@ -1,17 +1,10 @@
-
-
-
 class Rule():
     def __init__(self):
-    	pass
-
+        pass
 
     def close(self):
         pass
 
 
-
-
 class InvalidArgs(Exception):
     pass
-

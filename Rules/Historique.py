@@ -1,6 +1,7 @@
 import os
 from ._shared import *
 
+
 class Historique(Rule):
     """Handles history"""
 
@@ -32,7 +33,6 @@ class Historique(Rule):
         else:
             for hist in self.history[start:end]:
                 self.bot.say(serv, hist['cmd']+" par "+hist['author'])
-        
 
     def add(self, author, cmd):
         """Adds something to history"""
@@ -62,5 +62,3 @@ class Historique(Rule):
 
     def close(self):
         pass
-
-

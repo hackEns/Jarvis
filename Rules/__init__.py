@@ -8,6 +8,7 @@ from .Disclaimer import Disclaimer
 from .Emprunt import Emprunt
 from .Historique import Historique
 from .Info import Info
+from .Lumiere import Lumiere
 
 __all__ = [
     "InvalidArgs",
@@ -19,7 +20,6 @@ __all__ = [
     "Disclaimer",
     "Emprunt",
     "Historique",
-    "Info"
+    "Info",
+    "Lumiere"
 ]
-
-
