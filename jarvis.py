@@ -240,17 +240,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def aide(self, serv, author, args):
         """Prints help"""
         args = [i.lower() for i in args]
-        self.ans(serv, author, config.desc + " Commandes disponibles :")
+        serv.privmsg(author, config.desc + " Commandes disponibles :")
         if len(args) > 1 and args[0] == "aide":
             if args[1] in self.rules:
-                self.say(serv, self.rules[args[1]]['help'])
+                serv.privmsg(author, self.rules[args[1]]['help'])
             else:
-                self.say(serv, "Je n'ai pas compris…")
+                serv.privmsg(author, "Je n'ai pas compris…")
         elif args[0] != "aide" and args[0] in self.rules:
-            self.say(serv, self.rules[args[0]]['help'])
+            serv.privmsg(author, self.rules[args[0]]['help'])
         else:
             for rule in sorted(self.rules):
-                self.say(serv, self.rules[rule]['help'])
+                serv.privmsg(author, self.rules[rule]['help'])
 
     def moderation(self, serv, author, args):
         """Handles message to moderate listing"""
