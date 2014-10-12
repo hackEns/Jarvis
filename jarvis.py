@@ -65,6 +65,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.log = Log(self, config)
         self.atx = Atx(self, config)
         self.alias = Alias(self, self.basepath)
+        self.budget = Budget(self, config)
         self.camera = Camera(self, config)
         self.dis = Dis(self)
         self.disclaimer = Disclaimer(self)
@@ -74,6 +75,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.jeu = Jeu(self)
         self.lumiere = Lumiere(self, config)
         self.tchou_tchou = Tchou_Tchou(self)
+        self.update = Update(self, config)
         self.version = Version(self, config)
 
         self.rules = {}
@@ -276,105 +278,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             for rule in sorted(self.rules):
                 self.say(serv, self.rules[rule]['help'])
 
-    def budget(self, serv, author, args):
-        """Handles budget"""
-        if len(args) < 3:
-            raise InvalidArgs
-        try:
-            amount = float(args[2].strip("€"))
-            first_index = 3
-        except (KeyError, ValueError):
-            try:
-                amount = float(args[3].strip("€"))
-                if args[2] == "dépense":
-                    amount = -amount
-                first_index = 4
-            except (KeyError, ValueError):
-                if config.debug:
-                    tools.warning("Debug : " + str(args))
-                raise InvalidArgs
-        try:
-            comment = args[first_index:]
-            if comment[0].startswith("budget="):
-                budget = comment[0].replace("budget=", '')
-                del(comment[0])
-            else:
-                budget = ""
-            comment = ' '.join(comment)
-        except KeyError:
-            comment = ""
-            budget = ""
-        if budget == "":
-            # If no budget specified, put it in current year
-            year = datetime.datetime.now().year
-            budget = str(year) + " / " + str(year + 1)
-        if args[1] == "ajoute":
-            if comment == "":
-                raise InvalidArgs
-            query = ("INSERT INTO budget(amount, author, date, comment, budget) " +
-                     "VALUES(%s, %s, %s, %s, %s)")
-            values = (amount, author, datetime.datetime.now(), comment, budget)
-            try:
-                assert(self.bdd_cursor is not None)
-                self.bdd_cursor.execute(query, values)
-            except AssertionError:
-                if config.debug:
-                    tools.warning("Debug : Database disconnected.")
-                self.ans(serv, author,
-                         "Impossible d'ajouter la facture, base de données " +
-                         "injoignable.")
-                return
-            except mysql.connector.errors.Error as err:
-                if config.debug:
-                    tools.warning("Debug : " + str(err))
-                self.ans(serv,
-                         author,
-                         "Impossible d'ajouter la facture. (%s)" % (err,))
-                return
-            self.ans(serv, author, "Facture ajoutée.")
-        elif args[1] == "retire":
-            if budget != '':
-                query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s " +
-                         "AND comment LIKE %s AND budget=%s")
-                values = (amount, '%'+comment+'%', budget)
-            else:
-                query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s " +
-                         "AND comment LIKE %s")
-                values = (amount, '%'+comment+'%')
-            try:
-                assert(self.bdd_cursor is not None)
-                self.bdd_cursor.execute(query, values)
-                row = self.bdd_cursor.fetchone()
-                if row[0] > 1:
-                    self.ans(serv, author,
-                             "Requêtes trop ambiguë. Plusieurs entrées " +
-                             "correspondent.")
-                    return
-                if budget != '':
-                    query = ("DELETE FROM budget WHERE amount=%s AND " +
-                             "comment LIKE %s AND budget=%s")
-                else:
-                    query = ("DELETE FROM budget WHERE amount=%s AND " +
-                             "comment LIKE %s")
-                self.bdd_cursor.execute(query, values)
-            except AssertionError:
-                if config.debug:
-                    tools.warning("Debug : Database disconnected.")
-                self.ans(serv, author,
-                         "Impossible de supprimer la facture, " +
-                         "base de données injoignable.")
-                return
-            except mysql.connector.errors.Error as err:
-                if config.debug:
-                    tools.warning("Debug : " + str(err))
-                self.ans(serv,
-                         author,
-                         "Impossible de supprimer la facture. (%s)" % (err,))
-                return
-            self.ans(serv, author, "Facture retirée.")
-        else:
-            raise InvalidArgs
-
     def courses(self, serv, author, args):
         """Handles shopping list"""
         if len(args) < 3:
@@ -506,13 +409,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.ans(serv, author, message)
         for (ident, subject, author, liste) in self.bdd_cursor:
             self.say(serv, "["+liste+"] : « "+subject+" » par "+author)
-
-    def update(self, serv, author, args):
-        """Handles bot updating"""
-        if author in config.admins:
-            subprocess.Popen([self.basepath+"updater.sh", self.basepath])
-            self.ans(serv, author, "I will now update myself.")
-            sys.exit()
 
     def stream(self, serv, author, args):
         """Handles stream transmission"""
