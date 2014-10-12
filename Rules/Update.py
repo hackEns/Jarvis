@@ -13,7 +13,7 @@ class Update(Rule):
 
     def __call__(self, serv, author, args):
         """Handles bot updating"""
-        if author in self.config.admins:
+        if author in self.config.get("admins"):
             subprocess.Popen([self.bot.basepath+"updater.sh",
                               self.bot.basepath])
             self.bot.ans(serv, author, "I will now update myself.")

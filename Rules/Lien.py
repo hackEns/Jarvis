@@ -10,7 +10,7 @@ class Lien(Rule):
         self.last_added_link = ""
 
     def edit_link(search, private):
-        r = requests.get(self.config.shaarli_url,
+        r = requests.get(self.config.get("shaarli_url"),
                          params=base_params + (search,))
         if r.status_code != requests.codes.ok or r.text == "":
             if private >= 0:
@@ -27,11 +27,11 @@ class Lien(Rule):
         key = r.json()['linkdate']
         if private >= 0:
             post = {"url": self.last_added_link, "private": private}
-            r = requests.post(self.config.shaarli_url,
+            r = requests.post(self.config.get("shaarli_url"),
                               params=base_params + (("key", key),),
                               data=post)
         else:
-            r = requests.delete(self.config.shaarli_url,
+            r = requests.delete(self.config.get("shaarli_url"),
                                 params=base_params + (("key", key),))
         if r.status_code != 200:
             if private >= 0:
@@ -48,7 +48,7 @@ class Lien(Rule):
 
     def __call__(self, serv, author, args):
         """Handles links managements through Shaarli API"""
-        base_params = (("do", "api"), ("token", self.config.shaarli_token))
+        base_params = (("do", "api"), ("token", self.config.get("shaarli_token")))
         args[1] = args[1].lower()
         if len(args) > 1 and args[1] == "dernier":
             self.bot.ans(serv, author, self.last_added_link)
@@ -75,7 +75,7 @@ class Lien(Rule):
                     ok = True
             else:
                 for arg in args[2:]:
-                    if arg.startswith(config.shaarli_url):
+                    if arg.startswith(config.get("shaarli_url")):
                         small_hash = arg.split('?')[-1]
                     else:
                         small_hash = arg
@@ -90,17 +90,17 @@ class Lien(Rule):
     def on_links(self, serv, author, urls):
         """Stores links in the shaarli"""
         for url in set(urls):
-            if url.startswith(self.config.shaarli_url):
+            if url.startswith(self.config.get("shaarli_url")):
                 continue
-            base_params = (("do", "api"), ("token", self.config.shaarli_token))
-            r = requests.get(self.config.shaarli_url,
+            base_params = (("do", "api"), ("token", self.config.get("shaarli_token")))
+            r = requests.get(self.config.get("shaarli_url"),
                              params=base_params + (("url", url),))
             if r.text != "" and len(r.json()) > 0:
                 continue
             post = {"url": url,
                     "description": "Posté par "+author+".",
                     "private": 0}
-            r = requests.post(self.config.shaarli_url,
+            r = requests.post(self.config.get("shaarli_url"),
                               params=base_params, data=post)
             if r.status_code != 200 and r.status_code != 201:
                 self.bot.ans(serv, author,

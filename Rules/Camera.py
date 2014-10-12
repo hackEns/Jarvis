@@ -13,7 +13,7 @@ class Camera(Rule):
         if angle < 0 or angle > 180:
             return False
         towrite = int(127+int(127*float(angle)/180))
-        wiringpi2.pwmWrite(self.config.pin_cam, towrite)
+        wiringpi2.pwmWrite(self.config.get("pin_cam"), towrite)
         time.sleep(0.100)
 
     def __call__(self, serv, author, args):

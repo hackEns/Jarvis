@@ -10,7 +10,7 @@ class Log(Rule):
     def __init__(self, bot, config):
         self.config = config
         self.bot = bot
-        self.log_cache = deque("", self.config.log_cache_size)
+        self.log_cache = deque("", self.config.get("log_cache_size"))
         self.log_save_buffer = ""
         self.log_save_buffer_count = 0
 
@@ -20,9 +20,9 @@ class Log(Rule):
         last line is append to save buffer which
         is on its turn flushed to disk if full
         """
-        if len(self.log_cache) >= self.config.log_cache_size:
+        if len(self.log_cache) >= self.config.get("log_cache_size"):
             self.cache_to_buffer()
-            if self.log_save_buffer_count > self.config.log_save_buffer_size:
+            if self.log_save_buffer_count > self.config.get("log_save_buffer_size"):
                 self.flush_buffer()
 
         self.log_cache.appendleft((datetime.now().hour,
@@ -38,7 +38,7 @@ class Log(Rule):
 
     def flush_buffer(self):
         """Flush log save buffer to disk"""
-        with open(self.config.log_all_file, 'a') as f:
+        with open(self.config.get("log_all_file"), 'a') as f:
             f.write(self.log_save_buffer)
             self.log_save_buffer = ""
             self.log_save_buffer_count = 0
@@ -74,7 +74,7 @@ class Log(Rule):
                 tmp.append((h, m, auth, msg))
 
         if found_start:
-            with open(self.config.log_file, 'a') as f:
+            with open(self.config.get("log_file"), 'a') as f:
                 for i in range(len(tmp)):
                     f.write("%d:%d <%s> %s\n" % tmp.pop())
             self.bot.ans(serv, author, "Loggé !")

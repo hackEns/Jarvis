@@ -28,27 +28,27 @@ config = Config()
 class JarvisBot(ircbot.SingleServerIRCBot):
     """Main class for the Jarvis bot"""
     def __init__(self):
-        if not config.use_ssl:
-            ircbot.SingleServerIRCBot.__init__(self, [(config.server,
-                                                       config.port)],
-                                               config.nick,
-                                               config.desc)
+        if not config.get("use_ssl"):
+            ircbot.SingleServerIRCBot.__init__(self, [(config.get("server"),
+                                                       config.get("port"))],
+                                               config.get("nick"),
+                                               config.get("desc"))
         else:
             self.ssl_factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
-            ircbot.SingleServerIRCBot.__init__(self, [(config.server,
-                                                       config.port)],
-                                               config.nick,
-                                               config.desc,
+            ircbot.SingleServerIRCBot.__init__(self, [(config.get("server"),
+                                                       config.get("port"))],
+                                               config.get("nick"),
+                                               config.get("desc"),
                                                connect_factory=self.ssl_factory)
         self.error = None
         self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
         self.nickserved = False
 
         try:
-            self.bdd = mysql.connector.connect(**config.mysql)
+            self.bdd = mysql.connector.connect(**config.get("mysql"))
             self.bdd_cursor = self.bdd.cursor()
         except mysql.connector.Error as err:
-            if config.debug:
+            if config.get("debug"):
                 tools.warning("Debug : " + str(err))
             if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
                 self.error = "Accès refusé à la BDD."
@@ -62,9 +62,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.log = Log(self, config)
         self.atx = Atx(self, config)
         self.alias = Alias(self, self.basepath)
-        self.budget = Budget(self, config)
+        self.budget = Budget(self)
         self.camera = Camera(self, config)
-        self.courses = Courses(self, config)
+        self.courses = Courses(self)
         self.dis = Dis(self)
         self.disclaimer = Disclaimer(self)
         self.emprunt = Emprunt(self, self.bdd, self.bdd_cursor)
@@ -155,8 +155,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def on_welcome(self, serv, ev):
         """Upon server connection, handles nickserv"""
-        serv.privmsg("nickserv", "identify "+config.password)
-        serv.join(config.channel)
+        serv.privmsg("nickserv", "identify "+config.get("password"))
+        serv.join(config.get("channel"))
 
         self.connection.execute_delayed(random.randrange(3600, 84600),
                                         self.tchou_tchou, (serv,))
@@ -173,8 +173,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         elif(ev.arguments[0].strip().startswith("oui")):
             id = ev.arguments[0].replace("oui", "").strip()
             self.retour_priv(self, ev.source.nick, id)
-        elif(config.authorized_queries == [] or
-             ev.source.nick in config.authorized_queries):
+        elif(config.get("authorized_queries") == [] or
+             ev.source.nick in config.get("authorized_queries")):
             self.on_pubmsg(self, serv, ev)
 
     def on_pubmsg(self, serv, ev):
@@ -192,7 +192,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.jeu(serv)
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname() and
-           (config.authorized == [] or author in config.authorized)):
+           (config.get("authorized") == [] or author in config.get("authorized"))):
             msg = shlex.split(msg[1])
             msg[0] = msg[0].lower()
             self.historique.add(author, msg[0])
@@ -200,13 +200,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 try:
                     self.rules[msg[0]]['action'](serv, author, msg)
                 except InvalidArgs:
-                    if config.debug:
+                    if config.get("debug"):
                         tools.warning("Debug : " + str(msg))
                     self.aide(serv, author, msg)
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
         elif(msg[0].strip().lower() == "aziz" and
-             (config.authorized == [] or author in config.authorized)):
+             (config.get("authorized") == [] or author in config.get("authorized"))):
             # Easter egg
             msg = shlex.split(msg[1])
             msg[0] = msg[0].lower()
@@ -215,22 +215,22 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 try:
                     self.rules[msg[0]]['action'](serv, author, msg)
                 except InvalidArgs:
-                    if config.debug:
+                    if config.get("debug"):
                         tools.warning("Debug : " + str(msg))
                     self.aide(serv, author, msg)
         self.log.add_cache(author, raw_msg)  # Log each line
 
     def ans(self, serv, user, message):
         """Answers to specified user"""
-        serv.privmsg(config.channel, user+": "+message)
+        serv.privmsg(config.get("channel"), user+": "+message)
 
     def say(self, serv, message):
         """Say something on the channel"""
-        serv.privmsg(config.channel, message)
+        serv.privmsg(config.get("channel"), message)
 
     def has_admin_rights(self, serv, author):
         """Checks that author is in admin users"""
-        if len(config.admins) > 0 and author not in config.admins:
+        if len(config.get("admins")) > 0 and author not in config.get("admins"):
             self.ans(serv, author,
                      "Vous n'avez pas l'autorisation d'accéder à cette " +
                      "commande.")
@@ -240,7 +240,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def aide(self, serv, author, args):
         """Prints help"""
         args = [i.lower() for i in args]
-        serv.privmsg(author, config.desc + " Commandes disponibles :")
+        serv.privmsg(author, config.get("desc") + " Commandes disponibles :")
         if len(args) > 1 and args[0] == "aide":
             if args[1] in self.rules:
                 serv.privmsg(author, self.rules[args[1]]['help'])
@@ -254,7 +254,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def moderation(self, serv, author, args):
         """Handles message to moderate listing"""
-        if len(config.admins) != 0 and author not in config.admins:
+        if len(config.get("admins")) != 0 and author not in config.get("admins"):
             self.ans(serv, author, "Vous n'avez pas les droits requis.")
             return
         if len(args) > 1:
@@ -295,16 +295,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                      "/dev/video*"],
                                                     stdout=subprocess.PIPE)
                 if self.oggfwd is None:
-                    self.oggfwd = subprocess.Popen([config.oggfwd_path +
+                    self.oggfwd = subprocess.Popen([config.get("oggfwd_path") +
                                                     "/oggfwd",
-                                                    config.stream_server,
-                                                    config.stream_port,
-                                                    config.stream_pass,
-                                                    config.stream_mount,
-                                                    "-n "+config.stream_name,
-                                                    "-d "+config.stream_desc,
-                                                    "-u "+config.stream_url,
-                                                    "-g "+config.stream_genre],
+                                                    config.get("stream_server"),
+                                                    config.get("stream_port"),
+                                                    config.get("stream_pass"),
+                                                    config.get("stream_mount"),
+                                                    "-n "+config.get("stream_name"),
+                                                    "-d "+config.get("stream_desc"),
+                                                    "-u "+config.get("stream_url"),
+                                                    "-g "+config.get("stream_genre")],
                                                    stdin=self.streamh.stdout)
                 self.ans(serv, author, "Retransmission lancée !")
             except (IOError, ValueError):
@@ -347,14 +347,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             assert(self.bdd_cursor is not None)
             self.bdd_cursor.execute(query, values)
         except AssertionError:
-            if config.debug:
+            if config.get("debug"):
                 tools.warning("Debug : Database disconnected")
             self.ans(serv, author,
                      "Impossible de rendre l'outil, " +
                      "base de données injoignable.")
             return
         except mysql.connector.errors.Error as err:
-            if config.debug:
+            if config.get("debug"):
                 tools.warning("Debug : " + str(err))
             self.ans(serv,
                      author,
@@ -375,14 +375,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             assert(self.bdd_cursor is not None)
             self.bdd_cursor.execute(query, values)
         except AssertionError:
-            if config.debug:
+            if config.get("debug"):
                 tools.warning("Debug : Database disconnected")
             self.ans(serv, author,
                      "Impossible de rendre l'outil, " +
                      "base de données injoignable.")
             return
         except mysql.connector.errors.Error as err:
-            if config.debug:
+            if config.get("debug"):
                 tools.warning("Debug : " + str(err))
             self.ans(serv,
                      author,
@@ -407,13 +407,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.bdd_cursor.execute(query,
                                     (now + delta, delta, now))
         except AssertionError:
-            if config.debug:
+            if config.get("debug"):
                 tools.warning("Debug : Database disconnected")
             self.say(serv,
                      "Impossible de récupérer les notifications d'emprunts.")
             return
         except mysql.connector.errors.Error as err:
-            if config.debug:
+            if config.get("debug"):
                 tools.warning("Debug : " + str(err))
             self.say(serv,
                      "Impossible de récupérer les notifications d'emprunts.")
@@ -431,11 +431,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                           "le confirmer directement à Jarvis.")
                 msg = MIMEText(notif)
                 msg["Subject"] = "Emprunt en hack'ave"
-                msg["From"] = config.emails_sender
+                msg["From"] = config.get("emails_sender")
                 msg["to"] = borrower
 
                 s = smtplib.SMTP('localhost')
-                s.sendmail(config.emails_sender, [borrower], msg.as_string())
+                s.sendmail(config.get("emails_sender"), [borrower], msg.as_string())
             else:
                 serv.privmsg(borrower, notif)
                 serv.privmsg(borrower,
@@ -471,7 +471,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def __exit__(self, type, value, traceback):
         self.close()
         print("Bye!")
-        return not config.debug
+        return not config.get("debug")
 
 if __name__ == '__main__':
     with JarvisBot() as bot:

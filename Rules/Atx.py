@@ -10,10 +10,10 @@ class Atx(Rule):
         self.status = "off"
 
     def atx(self, state):
-        wiringpi2.digitalWrite(self.config.pin_atx, state)
+        wiringpi2.digitalWrite(self.config.get("pin_atx"), state)
 
     def atx_status(self):
-        return wiringpi2.digitalRead(self.config.pin_atx_status)
+        return wiringpi2.digitalRead(self.config.get("pin_atx_status"))
 
     def __call__(self, serv, author, args):
         """Handles RepRap ATX"""

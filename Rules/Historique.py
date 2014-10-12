@@ -23,7 +23,7 @@ class Historique(Rule):
                 start = -int(args[1])
                 end = None
             else:
-                start = -self.config.history_lines_to_show
+                start = -self.config.get("history_lines_to_show")
                 end = None
         except ValueError:
             raise InvalidArgs
@@ -37,10 +37,10 @@ class Historique(Rule):
     def add(self, author, cmd):
         """Adds something to history"""
         insert = {"author": author, "cmd": cmd}
-        if(self.config.history_no_doublons and
+        if(self.config.get("history_no_doublons") and
            (len(self.history) == 0 or self.history[-1] != insert)):
             self.history.append(insert)
-            while len(self.history) > self.config.history_length:
+            while len(self.history) > self.config.get("history_length"):
                 self.history.popleft()
                 self.write_history()
 

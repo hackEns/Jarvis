@@ -19,7 +19,7 @@ class Lumiere(Rule):
             else:
                 msg.append(int(c/2))
 
-        ser = wiringpi2.serialOpen(self.config.pin_led, 115200)
+        ser = wiringpi2.serialOpen(self.config.get("pin_led"), 115200)
         for j in msg:
             wiringpi2.serialPuts(ser, struct.pack("I", j))
         wiringpi2.serialClose(ser)

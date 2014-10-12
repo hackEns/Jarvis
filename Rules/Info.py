@@ -9,7 +9,7 @@ class Info(Rule):
         self.bot = bot
 
     def atx_status(self):
-        return wiringpi2.digitalRead(self.config.pin_atx_status)
+        return wiringpi2.digitalRead(self.config.get("pin_atx_status"))
 
     def __call__(self, serv, author, args):
         """Display infos"""
