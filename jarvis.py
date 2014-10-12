@@ -174,7 +174,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             id = ev.arguments[0].replace("oui", "").strip()
             self.retour_priv(self, ev.source.nick, id)
         elif(config.get("authorized_queries") == [] or
-             ev.source.nick in config.get("authorized_queries")):
+             (config.get("authorized_queries") is not None and 
+              ev.source.nick in config.get("authorized_queries"))):
             self.on_pubmsg(self, serv, ev)
 
     def on_pubmsg(self, serv, ev):
@@ -446,7 +447,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Exits nicely"""
         # Run close for all the Rules
         for rule in self.rules:
-            rule.close()
+            self.rules[rule]["action"].close()
         if self.streamh is not None:
             try:
                 self.streamh.terminate()
