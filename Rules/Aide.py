@@ -1,3 +1,5 @@
+import time
+
 from ._shared import *
 
 
@@ -23,6 +25,7 @@ class Aide(Rule):
         else:
             for rule in sorted(self.bot.rules):
                 serv.privmsg(author, self.bot.rules[rule]['help'])
+                time.sleep(0.7)  # Antispam
 
     def close(self):
         pass
