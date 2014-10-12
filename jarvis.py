@@ -464,5 +464,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         return not config.get("debug")
 
 if __name__ == '__main__':
-    with JarvisBot() as bot:
-        bot.start()
+    try:
+        with JarvisBot() as bot:
+            bot.start()
+    except KeyboardInterrupt:
+        pass
