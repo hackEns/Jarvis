@@ -21,6 +21,7 @@ import sys
 
 from Rules import *
 from libjarvis.config import Config
+from libjarvis import tools
 
 
 config = Config()
@@ -41,7 +42,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                config.nick,
                                                config.desc,
                                                connect_factory=self.ssl_factory)
-        self.version_nb = "0.2"
         self.error = None
         self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
         self.leds = None
@@ -52,7 +52,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.bdd_cursor = self.bdd.cursor()
         except mysql.connector.Error as err:
             if config.debug:
-                print("Debug : " + str(err))
+                tools.warning("Debug : " + str(err))
             if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
                 self.error = "Accès refusé à la BDD."
             elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
@@ -71,7 +71,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.emprunt = Emprunt(self, self.bdd, self.bdd_cursor)
         self.historique = Historique(self, config, self.basepath)
         self.info = Info(self)
+        self.jeu = Jeu(self)
         self.lumiere = Lumiere(self, config)
+        self.tchou_tchou = Tchou_Tchou(self)
+        self.version = Version(self, config)
 
         self.rules = {}
         self.add_rule("aide",
@@ -153,11 +156,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.rules[name]['help'] = help_msg
 
     def on_welcome(self, serv, ev):
-        """Upon server connection"""
+        """Upon server connection, handles nickserv"""
         serv.privmsg("nickserv", "identify "+config.password)
         serv.join(config.channel)
 
-        self.connection.execute_delayed(random.randrange(3600, 604800),
+        self.connection.execute_delayed(random.randrange(3600, 84600),
                                         self.tchou_tchou, (serv,))
         self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
         if self.error is not None:
@@ -177,17 +180,21 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.on_pubmsg(self, serv, ev)
 
     def on_pubmsg(self, serv, ev):
-        """Handles the queries on the chan"""
+        """Handles the messages on the chan"""
         author = ev.source.nick
         raw_msg = ev.arguments[0]
         msg = raw_msg.strip()
         urls = re.findall("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
                           msg.lower())
+        # If found some urls in the message, handles them
         if len(urls) > 0:
             self.on_links(serv, author, urls)
+        # If "perdu" or "jeu" or "game" or "42"  in the last message, do Jeu
+        if "perdu" in msg or "jeu" in msg or "game" in msg or "42" in msg:
+            self.jeu(serv)
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname() and
-           (config.authorized == [] or author in Config.authorized)):
+           (config.authorized == [] or author in config.authorized)):
             msg = shlex.split(msg[1])
             msg[0] = msg[0].lower()
             self.historique.add(author, msg[0])
@@ -196,12 +203,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     self.rules[msg[0]]['action'](serv, author, msg)
                 except InvalidArgs:
                     if config.debug:
-                        print("Debug : " + str(msg))
+                        tools.warning("Debug : " + str(msg))
                     self.aide(serv, author, msg)
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
         elif(msg[0].strip().lower() == "aziz" and
-             (config.authorized == [] or author in Config.authorized)):
+             (config.authorized == [] or author in config.authorized)):
+            # Easter egg
             msg = shlex.split(msg[1])
             msg[0] = msg[0].lower()
             if msg[0] == "lumiere":
@@ -210,7 +218,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     self.rules[msg[0]]['action'](serv, author, msg)
                 except InvalidArgs:
                     if config.debug:
-                        print("Debug : " + str(msg))
+                        tools.warning("Debug : " + str(msg))
                     self.aide(serv, author, msg)
         self.log.add_cache(author, raw_msg)  # Log each line
 
@@ -244,14 +252,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Say something on the channel"""
         serv.privmsg(config.channel, message)
 
-    def get_version(self):
-        """Returns the bot version"""
-        return (config.nick + "Bot version " +
-                self.version_nb + " by " + config.author)
-
     def has_admin_rights(self, serv, author):
         """Checks that author is in admin users"""
-        if len(config.admins) > 0 and author not in Config.admins:
+        if len(config.admins) > 0 and author not in config.admins:
             self.ans(serv, author,
                      "Vous n'avez pas l'autorisation d'accéder à cette " +
                      "commande.")
@@ -288,7 +291,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 first_index = 4
             except (KeyError, ValueError):
                 if config.debug:
-                    print("Debug : " + str(args))
+                    tools.warning("Debug : " + str(args))
                 raise InvalidArgs
         try:
             comment = args[first_index:]
@@ -316,14 +319,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
                 if config.debug:
-                    print("Debug : Database disconnected.")
+                    tools.warning("Debug : Database disconnected.")
                 self.ans(serv, author,
                          "Impossible d'ajouter la facture, base de données " +
                          "injoignable.")
                 return
             except mysql.connector.errors.Error as err:
                 if config.debug:
-                    print("Debug : " + str(err))
+                    tools.warning("Debug : " + str(err))
                 self.ans(serv,
                          author,
                          "Impossible d'ajouter la facture. (%s)" % (err,))
@@ -356,14 +359,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
                 if config.debug:
-                    print("Debug : Database disconnected.")
+                    tools.warning("Debug : Database disconnected.")
                 self.ans(serv, author,
                          "Impossible de supprimer la facture, " +
                          "base de données injoignable.")
                 return
             except mysql.connector.errors.Error as err:
                 if config.debug:
-                    print("Debug : " + str(err))
+                    tools.warning("Debug : " + str(err))
                 self.ans(serv,
                          author,
                          "Impossible de supprimer la facture. (%s)" % (err,))
@@ -399,14 +402,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
                 if config.debug:
-                    print("Debug : Database disconnected")
+                    tools.warning("Debug : Database disconnected")
                 self.ans(serv, author,
                          "Impossible d'ajouter l'objet à la " +
                          "liste de courses, base de données injoignable.")
                 return
             except mysql.connector.errors.Error as err:
                 if config.debug:
-                    print("Debug : " + str(err))
+                    tools.warning("Debug : " + str(err))
                 self.ans(serv,
                          author,
                          "Impossible d'ajouter l'objet à la liste " +
@@ -431,14 +434,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
                 if config.debug:
-                    print("Debug : Database disconnected")
+                    tools.warning("Debug : Database disconnected")
                 self.ans(serv, author,
                          "Impossible de supprimer l'item, base de données " +
                          "injoignable.")
                 return
             except mysql.connector.errors.Error as err:
                 if config.debug:
-                    print("Debug : " + str(err))
+                    tools.warning("Debug : " + str(err))
                 self.ans(serv,
                          author,
                          "Impossible de supprimer l'item. (%s)" % (err,))
@@ -462,14 +465,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.bdd_cursor.execute(query, values)
             except AssertionError:
                 if config.debug:
-                    print("Debug : Database disconnected")
+                    tools.warning("Debug : Database disconnected")
                 self.ans(serv, author,
                          "Impossible de marquer l'item comme acheté, " +
                          "base de données injoignable.")
                 return
             except mysql.connector.errors.Error as err:
                 if config.debug:
-                    print("Debug : " + str(err))
+                    tools.warning("Debug : " + str(err))
                 self.ans(serv,
                          author,
                          "Impossible de marquer l'item comme " +
@@ -481,7 +484,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def moderation(self, serv, author, args):
         """Handles message to moderate listing"""
-        if len(config.admins) != 0 and author not in Config.admins:
+        if len(config.admins) != 0 and author not in config.admins:
             self.ans(serv, author, "Vous n'avez pas les droits requis.")
             return
         if len(args) > 1:
@@ -504,22 +507,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         for (ident, subject, author, liste) in self.bdd_cursor:
             self.say(serv, "["+liste+"] : « "+subject+" » par "+author)
 
-    def jeu(self, serv, author, args):
-        """Handles game"""
-        self.ans(serv, author, "J'ai perdu le jeu…")
-
     def update(self, serv, author, args):
         """Handles bot updating"""
         if author in config.admins:
             subprocess.Popen([self.basepath+"updater.sh", self.basepath])
             self.ans(serv, author, "I will now update myself.")
             sys.exit()
-
-    def tchou_tchou(self, serv):
-        """Says tchou tchou"""
-        self.say(serv, "Tchou tchou !")
-        self.connection.execute_delayed(random.randrange(3600, 604800),
-                                        self.tchou_tchou)
 
     def stream(self, serv, author, args):
         """Handles stream transmission"""
@@ -572,10 +565,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         else:
             raise InvalidArgs
 
-    def version(self, serv, author, args):
-        """Prints current version"""
-        self.ans(serv, author, self.get_version())
-
     def retour(self, serv, author, args):
         """Handles end of borrowings"""
         args = [i.lower() for i in args]
@@ -596,14 +585,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.bdd_cursor.execute(query, values)
         except AssertionError:
             if config.debug:
-                print("Debug : Database disconnected")
+                tools.warning("Debug : Database disconnected")
             self.ans(serv, author,
                      "Impossible de rendre l'outil, " +
                      "base de données injoignable.")
             return
         except mysql.connector.errors.Error as err:
             if config.debug:
-                print("Debug : " + str(err))
+                tools.warning("Debug : " + str(err))
             self.ans(serv,
                      author,
                      "Impossible de rendre l'objet. (%s)" % (err,))
@@ -624,14 +613,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.bdd_cursor.execute(query, values)
         except AssertionError:
             if config.debug:
-                print("Debug : Database disconnected")
+                tools.warning("Debug : Database disconnected")
             self.ans(serv, author,
                      "Impossible de rendre l'outil, " +
                      "base de données injoignable.")
             return
         except mysql.connector.errors.Error as err:
             if config.debug:
-                print("Debug : " + str(err))
+                tools.warning("Debug : " + str(err))
             self.ans(serv,
                      author,
                      "Impossible de rendre l'objet. (%s)" % (err,))
@@ -656,13 +645,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                     (now + delta, delta, now))
         except AssertionError:
             if config.debug:
-                print("Debug : Database disconnected")
+                tools.warning("Debug : Database disconnected")
             self.say(serv,
                      "Impossible de récupérer les notifications d'emprunts.")
             return
         except mysql.connector.errors.Error as err:
             if config.debug:
-                print("Debug : " + str(err))
+                tools.warning("Debug : " + str(err))
             self.say(serv,
                      "Impossible de récupérer les notifications d'emprunts.")
             return
