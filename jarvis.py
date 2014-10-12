@@ -67,6 +67,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.alias = Alias(self, self.basepath)
         self.budget = Budget(self, config)
         self.camera = Camera(self, config)
+        self.courses = Courses(self, config)
         self.dis = Dis(self)
         self.disclaimer = Disclaimer(self)
         self.emprunt = Emprunt(self, self.bdd, self.bdd_cursor)
@@ -277,113 +278,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         else:
             for rule in sorted(self.rules):
                 self.say(serv, self.rules[rule]['help'])
-
-    def courses(self, serv, author, args):
-        """Handles shopping list"""
-        if len(args) < 3:
-            raise InvalidArgs
-        try:
-            comment = " ".join(args[3:])
-        except KeyError:
-            comment = ""
-        if args[1] == "acheter":
-            query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
-                     "comment LIKE %s")
-            values = (args[2], '%'+comment+'%')
-            try:
-                assert(self.bdd_cursor is not None)
-                self.bdd_cursor.execute(query, values)
-                row = self.bdd_cursor.fetchone()
-                if row[0] > 0:
-                    self.ans(serv,
-                             author,
-                             "Item déjà présent dans la liste de courses")
-                    return
-                query = ("INSERT INTO shopping(item, author, comment, date, " +
-                         "bought) VALUES(%s, %s, %s, %s, 0)")
-                values = (args[2], author, comment, datetime.datetime.now())
-                self.bdd_cursor.execute(query, values)
-            except AssertionError:
-                if config.debug:
-                    tools.warning("Debug : Database disconnected")
-                self.ans(serv, author,
-                         "Impossible d'ajouter l'objet à la " +
-                         "liste de courses, base de données injoignable.")
-                return
-            except mysql.connector.errors.Error as err:
-                if config.debug:
-                    tools.warning("Debug : " + str(err))
-                self.ans(serv,
-                         author,
-                         "Impossible d'ajouter l'objet à la liste " +
-                         "de courses. (%s)" % (err,))
-                return
-            self.ans(serv, author, "Item ajouté à la liste de courses.")
-        elif args[1] == "annuler":
-            query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
-                     "comment LIKE %s")
-            values = (args[2], '%'+comment+'%')
-            try:
-                assert(self.bdd_cursor is not None)
-                self.bdd_cursor.execute(query, values)
-                row = self.bdd_cursor.fetchone()
-                if row[0] > 1:
-                    self.ans(serv, author,
-                             "Requêtes trop ambiguë. Plusieurs entrées " +
-                             "correspondent.")
-                    return
-                query = ("DELETE FROM shopping WHERE item=%s AND " +
-                         "comment LIKE %s")
-                self.bdd_cursor.execute(query, values)
-            except AssertionError:
-                if config.debug:
-                    tools.warning("Debug : Database disconnected")
-                self.ans(serv, author,
-                         "Impossible de supprimer l'item, base de données " +
-                         "injoignable.")
-                return
-            except mysql.connector.errors.Error as err:
-                if config.debug:
-                    tools.warning("Debug : " + str(err))
-                self.ans(serv,
-                         author,
-                         "Impossible de supprimer l'item. (%s)" % (err,))
-                return
-            self.ans(serv, author, "Item supprimé de la liste de courses.")
-        elif args[1] == "acheté":
-            query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
-                     "comment LIKE %s AND bought=0")
-            values = (args[2], '%'+comment+'%')
-            try:
-                assert(self.bdd_cursor is not None)
-                self.bdd_cursor.execute(query, values)
-                row = self.bdd_cursor.fetchone()
-                if row[0] > 1:
-                    self.ans(serv, author,
-                             "Requêtes trop ambiguë. Plusieurs entrées " +
-                             "correspondent.")
-                    return
-                query = ("UPDATE shopping SET bought=1 WHERE item=%s AND " +
-                         "comment LIKE %s AND bought=0")
-                self.bdd_cursor.execute(query, values)
-            except AssertionError:
-                if config.debug:
-                    tools.warning("Debug : Database disconnected")
-                self.ans(serv, author,
-                         "Impossible de marquer l'item comme acheté, " +
-                         "base de données injoignable.")
-                return
-            except mysql.connector.errors.Error as err:
-                if config.debug:
-                    tools.warning("Debug : " + str(err))
-                self.ans(serv,
-                         author,
-                         "Impossible de marquer l'item comme " +
-                         "acheté. (%s)" % (err,))
-                return
-            self.ans(serv, author, "Item marqué comme acheté.")
-        else:
-            raise InvalidArgs
 
     def moderation(self, serv, author, args):
         """Handles message to moderate listing"""

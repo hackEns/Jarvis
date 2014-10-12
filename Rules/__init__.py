@@ -4,6 +4,7 @@ from .Atx import Atx
 from .Alias import Alias
 from .Budget import Budget
 from .Camera import Camera
+from .Courses import Courses
 from .Dis import Dis
 from .Disclaimer import Disclaimer
 from .Emprunt import Emprunt
@@ -22,6 +23,7 @@ __all__ = [
     "Alias",
     "Budget",
     "Camera",
+    "Courses",
     "Dis",
     "Disclaimer",
     "Emprunt",
