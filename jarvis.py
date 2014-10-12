@@ -60,6 +60,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.bdd_cursor = None
 
         self.log = Log(self, config)
+        self.aide= Aide(self, config)
         self.atx = Atx(self, config)
         self.alias = Alias(self, self.basepath)
         self.budget = Budget(self)
@@ -237,21 +238,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                      "commande.")
             return False
         return True
-
-    def aide(self, serv, author, args):
-        """Prints help"""
-        args = [i.lower() for i in args]
-        serv.privmsg(author, config.get("desc") + " Commandes disponibles :")
-        if len(args) > 1 and args[0] == "aide":
-            if args[1] in self.rules:
-                serv.privmsg(author, self.rules[args[1]]['help'])
-            else:
-                serv.privmsg(author, "Je n'ai pas compris…")
-        elif args[0] != "aide" and args[0] in self.rules:
-            serv.privmsg(author, self.rules[args[0]]['help'])
-        else:
-            for rule in sorted(self.rules):
-                serv.privmsg(author, self.rules[rule]['help'])
 
     def moderation(self, serv, author, args):
         """Handles message to moderate listing"""
