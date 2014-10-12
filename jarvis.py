@@ -433,7 +433,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Exits nicely"""
         # Run close for all the Rules
         for rule in self.rules:
-            self.rules[rule]["action"].close()
+            try:
+                self.rules[rule]["action"].close()
+            except AttributeError:
+                pass
         if self.streamh is not None:
             try:
                 self.streamh.terminate()
