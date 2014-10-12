@@ -52,6 +52,6 @@ class Camera(Rule):
                                  author,
                                  "Impossible de régler la caméra " +
                                  "à cette valeur.")
+
     def close(self):
         pass
-

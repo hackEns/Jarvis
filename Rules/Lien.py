@@ -1,3 +1,5 @@
+import requests
+
 from ._shared import *
 
 
@@ -48,7 +50,6 @@ class Lien(Rule):
 
     def __call__(self, serv, author, args):
         """Handles links managements through Shaarli API"""
-        base_params = (("do", "api"), ("token", self.config.get("shaarli_token")))
         args[1] = args[1].lower()
         if len(args) > 1 and args[1] == "dernier":
             self.bot.ans(serv, author, self.last_added_link)
@@ -71,7 +72,7 @@ class Lien(Rule):
             ok = False
             if len(args) == 2:
                 if self.edit_link(("url", self.last_added_link),
-                             private) is not False:
+                                  private) is not False:
                     ok = True
             else:
                 for arg in args[2:]:
