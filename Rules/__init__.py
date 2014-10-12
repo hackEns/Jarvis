@@ -1,5 +1,6 @@
 from ._shared import *
 from .Log import Log
+from .Aide import Aide
 from .Atx import Atx
 from .Alias import Alias
 from .Budget import Budget
@@ -20,6 +21,7 @@ from .Version import Version
 __all__ = [
     "InvalidArgs",
     "Log",
+    "Aide",
     "Atx",
     "Alias",
     "Budget",
