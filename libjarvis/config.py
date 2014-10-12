@@ -28,10 +28,10 @@ def make_sure_path_exists(path):
 
 class Config():
     def __init__(self, base_config_path="~/.config/jarvis/"):
+        self.VERSION = "0.2"
         self.config_path = os.path.expanduser(base_config_path)
         self.config = {}
         self.load()
-        self.VERSION = "0.2"
 
     def as_dict(self):
         return self.config
