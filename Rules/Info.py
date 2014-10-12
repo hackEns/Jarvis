@@ -60,3 +60,6 @@ class Info(Rule):
             to_say += "Caméra : " + self.bot.camera.pos + ", "
         to_say = to_say.strip(", ")
         self.bot.ans(serv, author, to_say)
+
+    def close(self):
+        pass

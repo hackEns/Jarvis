@@ -12,12 +12,10 @@ import mysql.connector
 import os
 import random
 import re
-import requests
 import shlex
 import smtplib
 import ssl
 import subprocess
-import sys
 
 from Rules import *
 from libjarvis.config import Config
@@ -44,8 +42,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                connect_factory=self.ssl_factory)
         self.error = None
         self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
-        self.leds = None
-        self.current_leds = "off"
+        self.nickserved = False
 
         try:
             self.bdd = mysql.connector.connect(**config.mysql)
@@ -74,6 +71,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.historique = Historique(self, config, self.basepath)
         self.info = Info(self)
         self.jeu = Jeu(self)
+        self.lien = Lien(self, config)
         self.lumiere = Lumiere(self, config)
         self.tchou_tchou = Tchou_Tchou(self)
         self.update = Update(self, config)
@@ -144,9 +142,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       self.version,
                       help_msg="version")
 
-        self.nickserved = False
-        self.last_added_link = ""
-
         # Init stream
         self.streamh = None
         self.oggfwd = None
@@ -191,7 +186,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                           msg.lower())
         # If found some urls in the message, handles them
         if len(urls) > 0:
-            self.on_links(serv, author, urls)
+            self.lien.on_links(serv, author, urls)
         # If "perdu" or "jeu" or "game" or "42"  in the last message, do Jeu
         if "perdu" in msg or "jeu" in msg or "game" in msg or "42" in msg:
             self.jeu(serv)
@@ -224,28 +219,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         tools.warning("Debug : " + str(msg))
                     self.aide(serv, author, msg)
         self.log.add_cache(author, raw_msg)  # Log each line
-
-    def on_links(self, serv, author, urls):
-        """Stores links in the shaarli"""
-        for url in set(urls):
-            if url.startswith(config.shaarli_url):
-                continue
-            base_params = (("do", "api"), ("token", config.shaarli_token))
-            r = requests.get(config.shaarli_url,
-                             params=base_params + (("url", url),))
-            if r.text != "" and len(r.json()) > 0:
-                continue
-            post = {"url": url,
-                    "description": "Posté par "+author+".",
-                    "private": 0}
-            r = requests.post(config.shaarli_url,
-                              params=base_params, data=post)
-            if r.status_code != 200 and r.status_code != 201:
-                self.ans(serv, author,
-                         "Impossible d'ajouter le lien à shaarli. " +
-                         "Status code : "+str(r.status_code))
-            else:
-                self.last_added_link = url
 
     def ans(self, serv, user, message):
         """Answers to specified user"""
@@ -469,93 +442,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "Pour confirmer le retour, répond-moi " +
                              "\"oui " + id_field + "\" en query.")
 
-    def lien(self, serv, author, args):
-        """Handles links managements through Shaarli API"""
-        base_params = (("do", "api"), ("token", config.shaarli_token))
-        args[1] = args[1].lower()
-        if len(args) > 1 and args[1] == "dernier":
-            self.ans(serv, author, self.last_added_link)
-            return
-
-        if not self.has_admin_rights(serv, author):
-            return
-
-        def edit_link(search, private):
-            r = requests.get(config.shaarli_url,
-                             params=base_params + (search,))
-            if r.status_code != requests.codes.ok or r.text == "":
-                if private >= 0:
-                    self.ans(serv, author,
-                             "Impossible d'éditer le lien " +
-                             search[1] + ". "
-                             "Status code : "+str(r.status_code))
-                else:
-                    self.ans(serv, author,
-                             "Impossible de supprimer le lien " +
-                             search[1] + ". "
-                             "Status code : "+str(r.status_code))
-                return False
-            key = r.json()['linkdate']
-            if private >= 0:
-                post = {"url": self.last_added_link, "private": private}
-                r = requests.post(config.shaarli_url,
-                                  params=base_params + (("key", key),),
-                                  data=post)
-            else:
-                r = requests.delete(config.shaarli_url,
-                                    params=base_params + (("key", key),))
-            if r.status_code != 200:
-                if private >= 0:
-                    self.ans(serv, author,
-                             "Impossible d'éditer le lien " +
-                             search[1] + ". "
-                             "Status code : "+str(r.status_code))
-                else:
-                    self.ans(serv, author,
-                             "Impossible de supprimer le lien " +
-                             search[1] + ". "
-                             "Status code : "+str(r.status_code))
-                return False
-
-        if(len(args) > 1 and
-           (args[1] in ["cache", "ignore", "affiche", "supprime"])):
-            if args[1] == "cache" or args[1] == "ignore":
-                msg = "Liens rendus privés."
-                private = 1
-            elif args[1] == "affiche":
-                msg = "Liens rendus publics."
-                private = 0
-            else:
-                msg = "Liens supprimés."
-                private = -1
-            ok = False
-            if len(args) == 2:
-                if edit_link(("url", self.last_added_link),
-                             private) is not False:
-                    ok = True
-            else:
-                for arg in args[2:]:
-                    if arg.startswith(config.shaarli_url):
-                        small_hash = arg.split('?')[-1]
-                    else:
-                        small_hash = arg
-                    if(edit_link(("hash", small_hash), private) is not False
-                       and ok is False):
-                        ok = True
-            if ok:
-                self.ans(serv, author, msg)
-        else:
-            raise InvalidArgs
-
     def close(self):
         """Exits nicely"""
-        if self.leds is not None:
-            try:
-                self.leds.terminate()
-            except ProcessLookupError:
-                pass
-            self.leds = None
-            self.current_leds = "off"
+        # Run close for all the Rules
+        for rule in self.rules:
+            rule.close()
         if self.streamh is not None:
             try:
                 self.streamh.terminate()
@@ -568,11 +459,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             except ProcessLookupError:
                 pass
             self.oggfwd = None
+        # Close database
         if self.bdd_cursor is not None:
             self.bdd_cursor.close()
         if self.bdd is not None:
             self.bdd.close()
-        self.log.close()
 
     def __enter__(self):
         return self

@@ -8,6 +8,8 @@ class Lumiere(Rule):
     def __init__(self, bot, config):
         self.config = config
         self.bot = bot
+        self.leds = None
+        self.current_leds = "off"
 
     def lumiere(r, v, b):
         msg = [0x80]
@@ -23,14 +25,14 @@ class Lumiere(Rule):
         wiringpi2.serialClose(ser)
 
     def __call__(self, serv, author, args):
-        if self.bot.leds is not None:
+        if self.leds is not None:
             try:
-                if isinstance(self.bot.leds, subprocess.Popen):
-                    self.bot.leds.terminate()
+                if isinstance(self.leds, subprocess.Popen):
+                    self.leds.terminate()
             except ProcessLookupError:
                 pass
-            self.bot.leds = None
-            self.bot.current_leds = "off"
+            self.leds = None
+            self.current_leds = "off"
         if len(args) == 4:
             try:
                 R = int(args[1])
@@ -42,12 +44,12 @@ class Lumiere(Rule):
                 assert(B >= 0 and B <= 255)
 
                 if self.lumiere(R, G, B):
-                    self.bot.current_leds = ("(" + str(R) + ", " +
-                                             str(G) + ", " +
-                                             str(B) + ")")
+                    self.current_leds = ("(" + str(R) + ", " +
+                                         str(G) + ", " +
+                                         str(B) + ")")
                     self.ans(serv,
                              author,
-                             "LED réglée sur " + self.bot.current_leds)
+                             "LED réglée sur " + self.current_leds)
                 else:
                     self.ans(serv,
                              author,
@@ -57,8 +59,17 @@ class Lumiere(Rule):
         elif len(args) == 2:
             script = os.path.join(self.basepath + "data/leds", args[1]) + ".py"
             if os.path.isfile(script):
-                self.bot.leds = subprocess.Popen(['python', script],
-                                                 stdout=subprocess.DEVNULL)
-                self.bot.current_leds = args[1]
+                self.leds = subprocess.Popen(['python', script],
+                                             stdout=subprocess.DEVNULL)
+                self.current_leds = args[1]
         else:
             raise InvalidArgs
+
+    def close(self):
+        if self.leds is not None:
+            try:
+                self.leds.terminate()
+            except ProcessLookupError:
+                pass
+            self.leds = None
+            self.current_leds = "off"

@@ -11,6 +11,7 @@ from .Emprunt import Emprunt
 from .Historique import Historique
 from .Info import Info
 from .Jeu import Jeu
+from .Lien import Lien
 from .Lumiere import Lumiere
 from .Tchou_Tchou import Tchou_Tchou
 from .Update import Update
@@ -30,6 +31,7 @@ __all__ = [
     "Historique",
     "Info",
     "Jeu",
+    "Lien",
     "Lumiere",
     "Tchou_Tchou",
     "Update",
