@@ -9,7 +9,7 @@ cd $1
 
 echo "Mise à jour"
 
-if git pull updater
+if git pull
 then
     echo "Mis à jour avec succès !"
 else
@@ -17,6 +17,6 @@ else
 fi
 
 echo "Lancement de jarvis"
-screen -S jarvis -p 0 -X stuff $1"/jarvis_bot.py$(printf \\r)"
+screen -r jarvis -p 0 -X stuff $1"/jarvis.py$(printf \\r)"
 
 exit 0
