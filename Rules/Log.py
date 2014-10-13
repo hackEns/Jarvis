@@ -33,7 +33,7 @@ class Log(Rule):
     def cache_to_buffer(self):
         """Pop a line from log cache and append it to save buffer"""
         t = self.log_cache.pop()
-        self.log_save_buffer += "%d:%d <%s> %s\n" % t
+        self.log_save_buffer += "%02d:%02d <%s> %s\n" % t
         self.log_save_buffer_count += 1
 
     def flush_buffer(self):
