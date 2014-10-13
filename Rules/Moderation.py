@@ -32,13 +32,13 @@ class Moderation(Rule):
         bdd_cursor = bdd.cursor()
         bdd_cursor.execute(query, values)
         if bdd_cursor.rowcount <= 0:
-            self.ans(serv,
-                     author,
-                     "Aucun message en attente de modération.")
+            self.bot.ans(serv,
+                         author,
+                         "Aucun message en attente de modération.")
             return
-        self.ans(serv, author, message)
+        self.bot.ans(serv, author, message)
         for (ident, subject, author, liste) in bdd_cursor:
-            self.say(serv, "["+liste+"] : « "+subject+" » par "+author)
+            self.bot.say(serv, "["+liste+"] : « "+subject+" » par "+author)
         bdd_cursor.close()
         bdd.close()
 
