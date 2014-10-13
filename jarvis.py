@@ -201,6 +201,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     if config.get("debug"):
                         tools.warning("Debug : " + str(msg))
                     self.aide(serv, author, msg)
+            elif msg[0] == "<3" or msg[0] == "♥":
+                self.ans(serv, author, "Merci "+author+", moi aussi je t'aime très fort ! #Kikoo")
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
         elif(msg[0].strip().lower() == "aziz" and
