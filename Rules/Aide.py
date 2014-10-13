@@ -1,5 +1,3 @@
-import time
-
 from ._shared import *
 
 

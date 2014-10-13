@@ -1,5 +1,3 @@
-import mysql.connector
-
 from ._shared import *
 
 

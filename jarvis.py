@@ -58,6 +58,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.jeu = Jeu(self)
         self.lien = Lien(self, config)
         self.lumiere = Lumiere(self, config)
+        self.moderation = Moderation(self)
         self.tchou_tchou = Tchou_Tchou(self)
         self.update = Update(self, config)
         self.version = Version(self, config)
@@ -227,48 +228,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def has_admin_rights(self, serv, author):
         """Checks that author is in admin users"""
-        if len(config.get("admins")) > 0 and author not in config.get("admins"):
+        if config.get("admins") is not None and author not in config.get("admins"):
             self.ans(serv, author,
                      "Vous n'avez pas l'autorisation d'accéder à cette " +
                      "commande.")
             return False
         return True
-
-    def moderation(self, serv, author, args):
-        """Handles message to moderate listing"""
-        if len(config.get("admins")) != 0 and author not in config.get("admins"):
-            self.ans(serv, author, "Vous n'avez pas les droits requis.")
-            return
-        if len(args) > 1:
-            liste = args[1].split("@")[0]
-            query = ("SELECT id, subject, author, liste FROM moderation " +
-                     "WHERE liste=%s AND moderated=0 ORDER BY date DESC")
-            values = (liste,)
-            message = ("Messages en attente de modération " +
-                       "pour la liste " + liste + " :")
-        else:
-            query = ("SELECT id, subject, author, liste FROM moderation " +
-                     "WHERE moderated=0 ORDER BY date DESC")
-            values = ()
-            message = "Messages en attente de modération :"
-        try:
-            bdd = self.mysql_connect(serv)
-            assert(bdd is not None)
-        except AssertionError:
-            return
-
-        bdd_cursor = bdd.cursor()
-        bdd_cursor.execute(query, values)
-        if bdd_cursor.rowcount <= 0:
-            self.ans(serv,
-                     author,
-                     "Aucun message en attente de modération.")
-            return
-        self.ans(serv, author, message)
-        for (ident, subject, author, liste) in bdd_cursor:
-            self.say(serv, "["+liste+"] : « "+subject+" » par "+author)
-        bdd_cursor.close()
-        bdd.close()
 
     def stream(self, serv, author, args):
         """Handles stream transmission"""

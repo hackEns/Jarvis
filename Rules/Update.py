@@ -13,8 +13,7 @@ class Update(Rule):
 
     def __call__(self, serv, author, args):
         """Handles bot updating"""
-        if(self.config.get("admins") is None or
-           author in self.config.get("admins")):
+        if self.bot.has_admin_rights(serv, author):
             subprocess.Popen([self.bot.basepath+"updater.sh",
                               self.bot.basepath])
             self.bot.ans(serv, author, "I will now update myself.")
