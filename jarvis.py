@@ -374,6 +374,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def notifs_emprunts(self, serv):
         """Notifications when borrowing is over"""
+        now = datetime.datetime.now()
+        delta = datetime.timedelta(hours=2)
         query = ("SELECT id, borrower, tool, date_from, until " +
                  "FROM borrowings WHERE ((until <= %s AND " +
                  "until - date_from <= %s) " + "OR until <= %s) AND back=0")
@@ -384,6 +386,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             return
         bdd_cursor = bdd.cursor()
         bdd_cursor.execute(query, values)
+        bdd_cursor.execute(query,
+                           (now + delta, delta, now))
         for (id_field, borrower, tool, from_field, until) in bdd_cursor:
             notif = ("Tu as emprunté "+tool+" depuis le " +
                      datetime.strftime(from_field, "%d/%m/%Y") +
