@@ -18,6 +18,8 @@ Jarvis can be easily installed on a Raspberry Pi, starting from an up-to-date Ra
 
 *Note :* Jarvis requires a MySQL database to be used, and a webserver to serve the web visualisation (repo [Jarvis web](https://github.com/hackEns/Jarvis_web)). As our webserver does not run on the Raspberry Pi, the above scripts do not include the setup for the webserver and the MySQL database. You should install and set them yourself. `system/jarvis.sql` contains all the necessary information to setup the database and tables.
 
+`startup.sh` is a service to use to start Jarvis automatically (Debian).
+
 
 ## Files and folders
 
