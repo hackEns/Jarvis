@@ -54,19 +54,15 @@ class Budget(Rule):
                      "VALUES(%s, %s, %s, %s, %s)")
             values = (amount, author, datetime.datetime.now(), comment, budget)
             try:
-                assert(self.bot.bdd_cursor is not None)
-                self.bot.bdd_cursor.execute(query, values)
+                bdd = self.bot.mysql_connect(serv)
+                assert(bdd is not None)
             except AssertionError:
-                self.bot.ans(serv, author,
-                             "Impossible d'ajouter la facture, " +
-                             "base de données injoignable.")
                 return
-            except mysql.connector.errors.Error as err:
-                self.bot.ans(serv,
-                             author,
-                             "Impossible d'ajouter la facture. (%s)" % (err,))
-                return
+            bdd_cursor = bdd.cursor()
+            bdd_cursor.execute(query, values)
             self.bot.ans(serv, author, "Facture ajoutée.")
+            bdd_cursor.close()
+            bdd.close()
 
         elif args[1] == "retire":
             if budget != '':
@@ -78,32 +74,28 @@ class Budget(Rule):
                          "AND comment LIKE %s")
                 values = (amount, '%'+comment+'%')
             try:
-                assert(self.bot.bdd_cursor is not None)
-                self.bot.bdd_cursor.execute(query, values)
-                row = self.bot.bdd_cursor.fetchone()
-                if row[0] > 1:
-                    self.bot.ans(serv, author,
-                                 "Requêtes trop ambiguë. Plusieurs entrées " +
-                                 "correspondent.")
-                    return
-                if budget != '':
-                    query = ("DELETE FROM budget WHERE amount=%s AND " +
-                             "comment LIKE %s AND budget=%s")
-                else:
-                    query = ("DELETE FROM budget WHERE amount=%s AND " +
-                             "comment LIKE %s")
-                self.bot.bdd_cursor.execute(query, values)
+                bdd = self.bot.mysql_connect(serv)
+                assert(bdd is not None)
             except AssertionError:
+                return
+            bdd_cursor = bdd.cursor()
+            bdd_cursor.execute(query, values)
+            row = bdd_cursor.fetchone()
+            if row[0] > 1:
                 self.bot.ans(serv, author,
-                             "Impossible de supprimer la facture, " +
-                             "base de données injoignable.")
+                             "Requêtes trop ambiguë. Plusieurs entrées " +
+                             "correspondent.")
                 return
-            except mysql.connector.errors.Error as err:
-                self.bot.ans(serv,
-                             author,
-                             "Impossible de supprimer la facture. (%s)" % (err,))
-                return
+            if budget != '':
+                query = ("DELETE FROM budget WHERE amount=%s AND " +
+                         "comment LIKE %s AND budget=%s")
+            else:
+                query = ("DELETE FROM budget WHERE amount=%s AND " +
+                         "comment LIKE %s")
+            bdd_cursor.execute(query, values)
             self.bot.ans(serv, author, "Facture retirée.")
+            bdd_cursor.close()
+            bdd.close()
         else:
             raise InvalidArgs
 

@@ -40,27 +40,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                config.get("nick"),
                                                config.get("desc"),
                                                connect_factory=self.ssl_factory)
-        self.error = None
         self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
         self.nickserved = False
 
-        try:
-            self.bdd = mysql.connector.connect(**config.get("mysql"))
-            self.bdd_cursor = self.bdd.cursor()
-        except mysql.connector.Error as err:
-            if config.get("debug"):
-                tools.warning("Debug : " + str(err))
-            if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
-                self.error = "Accès refusé à la BDD."
-            elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
-                self.error = "La base MySQL n'existe pas."
-            else:
-                self.error = err
-            self.bdd = None
-            self.bdd_cursor = None
-
         self.log = Log(self, config)
-        self.aide= Aide(self, config)
+        self.aide = Aide(self, config)
         self.atx = Atx(self, config)
         self.alias = Alias(self, self.basepath)
         self.budget = Budget(self)
@@ -68,7 +52,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.courses = Courses(self)
         self.dis = Dis(self)
         self.disclaimer = Disclaimer(self)
-        self.emprunt = Emprunt(self, self.bdd, self.bdd_cursor)
+        self.emprunt = Emprunt(self)
         self.historique = Historique(self, config, self.basepath)
         self.info = Info(self)
         self.jeu = Jeu(self)
@@ -154,6 +138,19 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.rules[name]['action'] = action
         self.rules[name]['help'] = help_msg
 
+    def mysql_connect(self, serv):
+        try:
+            bdd = mysql.connector.connect(**config.get("mysql"))
+            return bdd
+        except mysql.connector.Error as err:
+            if config.get("debug"):
+                tools.warning("Debug : " + str(err))
+            if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
+                serv.say("Accès refusé à la BDD.")
+            elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
+                serv.say("La base MySQL n'existe pas.")
+            return None
+
     def on_welcome(self, serv, ev):
         """Upon server connection, handles nickserv"""
         serv.privmsg("nickserv", "identify "+config.get("password"))
@@ -162,8 +159,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.connection.execute_delayed(random.randrange(3600, 84600),
                                         self.tchou_tchou, (serv,))
         self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
-        if self.error is not None:
-            self.say(serv, self.error)
         serv.privmsg("nickserv", "identify ")
 
     def on_privmsg(self, serv, ev):
@@ -175,7 +170,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             id = ev.arguments[0].replace("oui", "").strip()
             self.retour_priv(self, ev.source.nick, id)
         elif(config.get("authorized_queries") == [] or
-             (config.get("authorized_queries") is not None and 
+             (config.get("authorized_queries") is not None and
               ev.source.nick in config.get("authorized_queries"))):
             self.on_pubmsg(self, serv, ev)
 
@@ -256,13 +251,24 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                      "WHERE moderated=0 ORDER BY date DESC")
             values = ()
             message = "Messages en attente de modération :"
-        self.bdd_cursor.execute(query, values)
-        if self.bdd_cursor.rowcount <= 0:
-            self.ans(serv, author, "Aucun message en attente de modération.")
+        try:
+            bdd = self.mysql_connect(serv)
+            assert(bdd is not None)
+        except AssertionError:
+            return
+
+        bdd_cursor = bdd.cursor()
+        bdd_cursor.execute(query, values)
+        if bdd_cursor.rowcount <= 0:
+            self.ans(serv,
+                     author,
+                     "Aucun message en attente de modération.")
             return
         self.ans(serv, author, message)
-        for (ident, subject, author, liste) in self.bdd_cursor:
+        for (ident, subject, author, liste) in bdd_cursor:
             self.say(serv, "["+liste+"] : « "+subject+" » par "+author)
+        bdd_cursor.close()
+        bdd.close()
 
     def stream(self, serv, author, args):
         """Handles stream transmission"""
@@ -331,81 +337,54 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         query = ("UPDATE borrowings SET back=1 WHERE tool=%s AND borrower=%s")
         values = (args[1], borrower)
         try:
-            assert(self.bdd_cursor is not None)
-            self.bdd_cursor.execute(query, values)
+            bdd = self.mysql_connect(serv)
+            assert(bdd is not None)
         except AssertionError:
-            if config.get("debug"):
-                tools.warning("Debug : Database disconnected")
-            self.ans(serv, author,
-                     "Impossible de rendre l'outil, " +
-                     "base de données injoignable.")
             return
-        except mysql.connector.errors.Error as err:
-            if config.get("debug"):
-                tools.warning("Debug : " + str(err))
-            self.ans(serv,
-                     author,
-                     "Impossible de rendre l'objet. (%s)" % (err,))
-            return
-        if self.bdd_cursor.rowcount > 0:
+        bdd_cursor = bdd.cursor()
+        bdd_cursor.execute(query, values)
+        if bdd_cursor.rowcount > 0:
             self.ans(serv, author,
                      "Retour de "+args[1]+" enregistré.")
         else:
             self.ans(serv, author,
                      "Emprunt introuvable.")
+        bdd_cursor.close()
+        bdd.close()
 
     def retour_priv(self, author, id):
         """Handles end of borrowings with private answers to notifications"""
         query = ("UPDATE borrowings SET back=1 WHERE id=%s")
         values = (id,)
         try:
-            assert(self.bdd_cursor is not None)
-            self.bdd_cursor.execute(query, values)
+            bdd = self.mysql_connect(serv)
+            assert(bdd is not None)
         except AssertionError:
-            if config.get("debug"):
-                tools.warning("Debug : Database disconnected")
-            self.ans(serv, author,
-                     "Impossible de rendre l'outil, " +
-                     "base de données injoignable.")
             return
-        except mysql.connector.errors.Error as err:
-            if config.get("debug"):
-                tools.warning("Debug : " + str(err))
-            self.ans(serv,
-                     author,
-                     "Impossible de rendre l'objet. (%s)" % (err,))
-            return
-        if self.bdd_cursor.rowcount > 0:
+        bdd_cursor = bdd.cursor()
+        bdd_cursor.execute(query, values)
+        if bdd_cursor.rowcount > 0:
             self.privmsg(author,
                          "Retour de "+args[1]+" enregistré.")
         else:
             self.privmsg(author,
                          "Emprunt introuvable.")
+        bdd_cursor.close()
+        bdd.close()
 
     def notifs_emprunts(self, serv):
         """Notifications when borrowing is over"""
-        now = datetime.datetime.now()
-        delta = datetime.timedelta(hours=2)
         query = ("SELECT id, borrower, tool, date_from, until " +
                  "FROM borrowings WHERE ((until <= %s AND " +
                  "until - date_from <= %s) " + "OR until <= %s) AND back=0")
         try:
-            assert(self.bdd_cursor is not None)
-            self.bdd_cursor.execute(query,
-                                    (now + delta, delta, now))
+            bdd = self.mysql_connect(serv)
+            assert(bdd is not None)
         except AssertionError:
-            if config.get("debug"):
-                tools.warning("Debug : Database disconnected")
-            self.say(serv,
-                     "Impossible de récupérer les notifications d'emprunts.")
             return
-        except mysql.connector.errors.Error as err:
-            if config.get("debug"):
-                tools.warning("Debug : " + str(err))
-            self.say(serv,
-                     "Impossible de récupérer les notifications d'emprunts.")
-            return
-        for (id_field, borrower, tool, from_field, until) in self.bdd_cursor:
+        bdd_cursor = bdd.cursor()
+        bdd_cursor.execute(query, values)
+        for (id_field, borrower, tool, from_field, until) in bdd_cursor:
             notif = ("Tu as emprunté "+tool+" depuis le " +
                      datetime.strftime(from_field, "%d/%m/%Y") +
                      " et tu devais le " +
@@ -428,6 +407,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 serv.privmsg(borrower,
                              "Pour confirmer le retour, répond-moi " +
                              "\"oui " + id_field + "\" en query.")
+        bdd_cursor.close()
+        bdd.close()
 
     def close(self):
         """Exits nicely"""
@@ -449,11 +430,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             except ProcessLookupError:
                 pass
             self.oggfwd = None
-        # Close database
-        if self.bdd_cursor is not None:
-            self.bdd_cursor.close()
-        if self.bdd is not None:
-            self.bdd.close()
 
     def __enter__(self):
         return self

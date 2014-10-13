@@ -7,10 +7,14 @@ from ._shared import *
 class Emprunt(Rule):
     """Handles tools borrowings"""
 
-    def __init__(self, bot, bdd, bdd_cursor):
+    def __init__(self, bot):
         self.bot = bot
-        self.bdd = bdd
-        self.bdd_cursor = bdd_cursor
+
+    def padding(number):
+        if number < 10:
+            return "0"+str(number)
+        else:
+            return str(number)
 
     def __call__(self, serv, author, args):
         """Handles tools borrowings"""
@@ -57,43 +61,32 @@ class Emprunt(Rule):
                  "VALUES (%s, %s, %s, %s, %s)")
         values = (borrower, tool, datetime.datetime.now(), until, 0)
         try:
-            assert(self.bdd_cursor is not None)
-            self.bdd_cursor.execute("SELECT COUNT(id) FROM borrowings " +
-                                    "WHERE back=0 AND borrower=%s AND tool=%s",
-                                    (borrower, tool))
-            row = self.bdd_cursor.fetchone()
-            if row[0] > 0:
-                self.bot.ans(serv,
-                             author,
-                             "Il y a déjà un emprunt en cours, mise à jour.")
-                query = ("UPDATE borrowings" +
-                         "(id, borrower, tool, `date_from`, until, back)" +
-                         "SET until=%s " +
-                         "WHERE back=0 AND borrower=%s AND tool=%s")
-                values = (until, borrower, tool)
-            self.bdd_cursor.execute(query, values)
+            bdd = self.bot.mysql_connect(serv)
+            assert(bdd is not None)
         except AssertionError:
+            return
+        bdd_cursor = bdd.cursor()
+        bdd_cursor.execute("SELECT COUNT(id) FROM borrowings " +
+                           "WHERE back=0 AND borrower=%s AND tool=%s",
+                           (borrower, tool))
+        row = bdd_cursor.fetchone()
+        if row[0] > 0:
             self.bot.ans(serv,
                          author,
-                         "Impossible d'ajouter l'emprunt. " +
-                         "(Base de données introuvable)")
-            return
-        except mysql.connector.errors.Error as err:
-            self.bot.ans(serv,
-                         author,
-                         "Impossible d'ajouter l'emprunt. (%s)" % (err,))
-            return
-
-        def padding(number):
-            if number < 10:
-                return "0"+str(number)
-            else:
-                return str(number)
+                         "Il y a déjà un emprunt en cours, mise à jour.")
+            query = ("UPDATE borrowings" +
+                     "(id, borrower, tool, `date_from`, until, back)" +
+                     "SET until=%s " +
+                     "WHERE back=0 AND borrower=%s AND tool=%s")
+            values = (until, borrower, tool)
+        bdd_cursor.execute(query, values)
+        bdd_cursor.close()
+        bdd.close()
 
         self.bot.ans(serv, author,
                      "Emprunt de "+tool+" jusqu'au " +
-                     padding(day) + "/" + padding(month) + " à " +
-                     padding(hour) + "h noté.")
+                     self.padding(day) + "/" + self.padding(month) + " à " +
+                     self.padding(hour) + "h noté.")
 
     def close(self):
         pass
