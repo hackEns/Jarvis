@@ -10,7 +10,21 @@ class Courses(Rule):
     def __call__(self, serv, author, args):
         """Handles shopping list"""
         if len(args) < 3:
-            raise InvalidArgs
+            if len(args) == 1:
+                query = ("SELECT item, author, date FROM shopping WHERE bought=0")
+                try:
+                    bdd = self.bot.mysql_connect(serv)
+                    assert(bdd is not None)
+                except AssertionError:
+                    return
+                bdd_cursor = bdd.cursor()
+                bdd_cursor.execute(query)
+                serv.privmsg(author, 'Voici la liste de courses (également consultable sur http://hackens.org/jarvis?do=courses)')
+                for row in bdd_cursor:
+                    serv.privmsg(author, '{0} (ajouté par {1} le {2})'.format(*row))
+                return
+            else:
+                raise InvalidArgs
         try:
             comment = " ".join(args[3:])
         except KeyError:

@@ -16,6 +16,7 @@ import shlex
 import smtplib
 import ssl
 import subprocess
+import random
 
 from Rules import *
 from libjarvis.config import Config
@@ -186,12 +187,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if len(urls) > 0:
             self.lien.on_links(serv, author, urls)
         # If "perdu" or "jeu" or "game" or "42"  in the last message, do Jeu
-        if "perdu" in msg or "jeu" in msg or "game" in msg or "42" in msg:
+        if ("perdu" in msg or "jeu" in msg or "game" in msg or "42" in msg) and random.randint(0, 10) == 7:
             self.jeu(serv)
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname() and
            (config.get("authorized") == [] or author in config.get("authorized"))):
-            msg = shlex.split(msg[1])
+            try:
+                msg = shlex.split(msg[1])
+            except ValueError:
+                self.say(serv, 'Oops.')
+                return
             msg[0] = msg[0].lower()
             self.historique.add(author, msg[0])
             if msg[0] in self.rules:
@@ -208,7 +213,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         elif(msg[0].strip().lower() == "aziz" and
              (config.get("authorized") == [] or author in config.get("authorized"))):
             # Easter egg
-            msg = shlex.split(msg[1])
+            try:
+                msg = shlex.split(msg[1])
+            except ValueError:
+                self.say(serv, 'Oops.')
+                return
             msg[0] = msg[0].lower()
             if msg[0] == "lumiere":
                 self.historique.add(author, msg[0])
@@ -352,8 +361,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         except AssertionError:
             return
         bdd_cursor = bdd.cursor()
-        bdd_cursor.execute(query, values)
-        bdd_cursor.execute(query, (now + delta, delta, now))
+        bdd_cursor.execute(query,
+                           (now + delta, delta, now))
         for (id_field, borrower, tool, from_field, until) in bdd_cursor:
             notif = ("Tu as emprunté "+tool+" depuis le " +
                      datetime.strftime(from_field, "%d/%m/%Y") +
