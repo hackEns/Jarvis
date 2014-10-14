@@ -22,6 +22,7 @@ class Courses(Rule):
                 serv.privmsg(author, 'Voici la liste de courses (également consultable sur http://hackens.org/jarvis?do=courses)')
                 for row in bdd_cursor:
                     serv.privmsg(author, '{0} (ajouté par {1} le {2})'.format(*row))
+                return
             else:
                 raise InvalidArgs
         try:
