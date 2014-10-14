@@ -21,7 +21,7 @@ class Courses(Rule):
                 bdd_cursor.execute(query)
                 serv.privmsg(author, 'Voici la liste de courses (également consultable sur http://hackens.org/jarvis?do=courses)')
                 for row in bdd_cursor:
-                    serv.privmsg(author, '{0} (ajouté par {1} le {2})'.format(**row))
+                    serv.privmsg(author, '{0} (ajouté par {1} le {2})'.format(*row))
                 self.bot.ans(serv, author, "Liste de courses envoyée en PM.")
             else:
                 raise InvalidArgs
