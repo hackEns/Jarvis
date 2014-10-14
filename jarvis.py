@@ -191,7 +191,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname() and
            (config.get("authorized") == [] or author in config.get("authorized"))):
-            msg = shlex.split(msg[1])
+            try:
+                msg = shlex.split(msg[1])
+            except ValueError:
+                self.say('Oops.')
+                return
             msg[0] = msg[0].lower()
             self.historique.add(author, msg[0])
             if msg[0] in self.rules:
@@ -208,7 +212,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         elif(msg[0].strip().lower() == "aziz" and
              (config.get("authorized") == [] or author in config.get("authorized"))):
             # Easter egg
-            msg = shlex.split(msg[1])
+            try:
+                msg = shlex.split(msg[1])
+            except ValueError:
+                self.say('Oops.')
+                return
             msg[0] = msg[0].lower()
             if msg[0] == "lumiere":
                 self.historique.add(author, msg[0])
