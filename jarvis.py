@@ -361,7 +361,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         except AssertionError:
             return
         bdd_cursor = bdd.cursor()
-        bdd_cursor.execute(query, values)
         bdd_cursor.execute(query,
                            (now + delta, delta, now))
         for (id_field, borrower, tool, from_field, until) in bdd_cursor:
