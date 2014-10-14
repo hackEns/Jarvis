@@ -16,6 +16,7 @@ import shlex
 import smtplib
 import ssl
 import subprocess
+import random
 
 from Rules import *
 from libjarvis.config import Config
@@ -82,7 +83,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="camera ALIAS|ANGLE")
         self.add_rule("courses",
                       self.courses,
-                      help_msg="courses (acheter|annuler|acheté|liste) " +
+                      help_msg="courses (acheter|annuler|acheté) " +
                       "item [commentaire]")
         self.add_rule("dis",
                       self.dis,
@@ -186,7 +187,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         if len(urls) > 0:
             self.lien.on_links(serv, author, urls)
         # If "perdu" or "jeu" or "game" or "42"  in the last message, do Jeu
-        if "perdu" in msg or "jeu" in msg or "game" in msg or "42" in msg:
+        if ("perdu" in msg or "jeu" in msg or "game" in msg or "42" in msg) and random.randint(0, 10) == 7:
             self.jeu(serv)
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname() and
