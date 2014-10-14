@@ -194,7 +194,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             try:
                 msg = shlex.split(msg[1])
             except ValueError:
-                self.say('Oops.')
+                self.say(serv, 'Oops.')
                 return
             msg[0] = msg[0].lower()
             self.historique.add(author, msg[0])
@@ -215,7 +215,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             try:
                 msg = shlex.split(msg[1])
             except ValueError:
-                self.say('Oops.')
+                self.say(serv, 'Oops.')
                 return
             msg[0] = msg[0].lower()
             if msg[0] == "lumiere":
