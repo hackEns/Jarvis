@@ -10,7 +10,21 @@ class Courses(Rule):
     def __call__(self, serv, author, args):
         """Handles shopping list"""
         if len(args) < 3:
-            raise InvalidArgs
+            if len(args) == 2 and args[1] == "liste":
+                query = ("SELECT item, author, date FROM shopping WHERE bought=0")
+                try:
+                    bdd = self.bot.mysql_connect(serv)
+                    assert(bdd is not None)
+                except AssertionError:
+                    return
+                bdd_cursor = bdd.cursor()
+                bdd_cursor.execute(query)
+                serv.privmsg(author, 'Voici la liste de courses (également consultable sur http://hackens.org/jarvis?do=courses)')
+                for row in bdd_cursor:
+                    serv.privmsg(author, '{0} (ajouté par {1} le {2})'.format(**row))
+                self.bot.ans(serv, author, "Liste de courses envoyée en PM.")
+            else:
+                raise InvalidArgs
         try:
             comment = " ".join(args[3:])
         except KeyError:
@@ -88,20 +102,6 @@ class Courses(Rule):
             self.bot.ans(serv, author, "Item marqué comme acheté.")
             bdd_cursor.close()
             bdd.close()
-
-        elif args[1] == "liste":
-            query = ("SELECT item, author, date FROM shopping WHERE bought=0 AND item LIKE %s")
-            values = (args[2],)
-            try:
-                bdd = self.bot.mysql_connect(serv)
-                assert(bdd is not None)
-            except AssertionError:
-                return
-            bdd_cursor = bdd.cursor()
-            bdd_cursor.execute(query, values)
-            for row in bdd_cursor:
-                serv.privmsg(author, '{item} (ajouté par {author} le {date})'.format(**row))
-            self.bot.ans(serv, author, "Liste de courses envoyée en PM.")
 
         else:
             raise InvalidArgs
