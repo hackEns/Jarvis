@@ -353,8 +353,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             return
         bdd_cursor = bdd.cursor()
         bdd_cursor.execute(query, values)
-        bdd_cursor.execute(query,
-                           (now + delta, delta, now))
+        bdd_cursor.execute(query, (now + delta, delta, now))
         for (id_field, borrower, tool, from_field, until) in bdd_cursor:
             notif = ("Tu as emprunté "+tool+" depuis le " +
                      datetime.strftime(from_field, "%d/%m/%Y") +
@@ -363,7 +362,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
                         borrower) is not None:
                 notif = "Salut,\n\n" + notif
-                notif += ("\nPour confirmer le retour, répond à cet e-mail " +
+                notif += ("\n\nPour confirmer le retour, répond à cet e-mail " +
                           "ou connecte-toi sur IRC (#hackens) pour " +
                           "le confirmer directement à Jarvis.")
                 msg = MIMEText(notif)
@@ -372,7 +371,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 msg["to"] = borrower
 
                 s = smtplib.SMTP('localhost')
-                s.sendmail(config.get("emails_sender"), [borrower], msg.as_string())
+                s.sendmail(config.get("emails_sender"),
+                           [borrower],
+                           msg.as_string())
             else:
                 serv.privmsg(borrower, notif)
                 serv.privmsg(borrower,
