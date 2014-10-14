@@ -82,7 +82,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="camera ALIAS|ANGLE")
         self.add_rule("courses",
                       self.courses,
-                      help_msg="courses (acheter|annuler|acheté) " +
+                      help_msg="courses (acheter|annuler|acheté|liste) " +
                       "item [commentaire]")
         self.add_rule("dis",
                       self.dis,

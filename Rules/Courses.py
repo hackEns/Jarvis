@@ -89,6 +89,20 @@ class Courses(Rule):
             bdd_cursor.close()
             bdd.close()
 
+        elif args[1] == "liste":
+            query = ("SELECT item, author, date FROM shopping WHERE bought=0 AND item LIKE %s")
+            values = (args[2],)
+            try:
+                bdd = self.bot.mysql_connect(serv)
+                assert(bdd is not None)
+            except AssertionError:
+                return
+            bdd_cursor = bdd.cursor()
+            bdd_cursor.execute(query, values)
+            for row in bdd_cursor:
+                serv.privmsg(author, '{item} (ajouté par {author} le {date})'.format(**row))
+            self.bot.ans(serv, author, "Liste de courses envoyée en PM.")
+
         else:
             raise InvalidArgs
 
