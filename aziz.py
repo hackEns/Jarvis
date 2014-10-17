@@ -5,12 +5,16 @@ This is the mailing-list code, to check wether there are some emails waiting
 for validation.
 """
 
+import datetime
 import email
 import imaplib
+import mysql.connector
 import re
 import sys
 
+from libjarvis import tools
 from libjarvis.config import Config
+
 
 config = Config()
 
@@ -45,7 +49,7 @@ def handle_raw_email(body):
             return False
         liste = match.group(1)
         token = match.group(2)
-        return ("distribution", "nouveau", token, liste, subject, author)
+        return ("distribution", token, liste, subject, author)
 
 
 if __name__ == "__main__":
@@ -64,13 +68,33 @@ if __name__ == "__main__":
     print('Logged in')
 
     try:
+        bdd = mysql.connector.connect(**config.get("mysql"))
+        bdd_cursor = bdd.cursor()
+    except mysql.connector.Error as err:
+        tools.warning(err)
+        sys.exit(1)
+
+    try:
         # Fetch new emails in INBOX, using uids
         conn.select("inbox")
         result, data = conn.uid('search', None, "ALL")
         uids_list = data[0].split()
         for uid in uids_list:
             result, data = conn.uid("fetch", uid, "(RFC822)")
-            handle_raw_email(data[0][1])
+            parsed = handle_raw_email(data[0][1])
+
+            if parsed[0] == "sympa":
+                query = "UPDATE moderation SET moderated=%s WHERE token=%s AND liste=%s"
+                if parsed[1] == "rejeté":
+                    values = (-1, parsed[2], parsed[3])
+                elif parsed[1] == "distribué":
+                    values = (1, parsed[2], parsed[3])
+            elif parsed[0] == "distribution":
+                query = "INSERT INTO moderation(subject, author, date, liste, token, moderated) VALUES(%s, %s, %s, %s, %s, %s)"
+                values = (parsed[3], parsed[4], datetime.datetime.now(), parsed[2], 1)
+            else:
+                sys.exit(1)
+            bdd_cursor.execute(query, values)
 
         # Delete parsed emails
         for uid in uids_list:
@@ -79,6 +103,8 @@ if __name__ == "__main__":
     finally:
         try:
             conn.close()
+            bdd_cursor.close()
+            bdd.close()
         except:
             pass
         conn.logout()

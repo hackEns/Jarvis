@@ -63,6 +63,25 @@ CREATE TABLE IF NOT EXISTS `shopping` (
   `bought` tinyint(4) NOT NULL
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3 ;
 
+--
+-- Table structure for table `moderation`
+--
+
+DROP TABLE IF EXISTS `moderation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `moderation` (
+  `id` varchar(255) NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `author` varchar(255) NOT NULL,
+  `date` datetime NOT NULL,
+  `liste` varchar(255) NOT NULL,
+  `token` varchar(255) DEFAULT NULL,
+  `moderated` tinyint(4) NOT NULL,
+  KEY `id` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 -- Indexes for dumped tables
 --
 
