@@ -7,6 +7,7 @@ for validation.
 
 import email
 import imaplib
+import re
 import sys
 
 from libjarvis.config import Config
@@ -20,38 +21,31 @@ def handle_raw_email(body):
 
     if "sympa@lists.ens.fr" in mail["From"]:
         for part in mail.walk():
-            if part.is_multipart() == 'multipart':
+            if part.get_content_type() != "text/plain":
                 continue
-            part = part.replace("Le message", '').strip().split(" ")
-            ident = part[0].strip()
-            liste = part[4].strip()
-            data = ["valider", ident, liste]
+            decoded = part.get_payload(decode=True).decode('utf-8')
+            decoded = decoded.replace("Le message", '').replace("\r\n", " ").strip().split(" ")
+            token = decoded[0]
+            liste = decoded[4]
+            action = decoded[-1].strip('.')
+        return ("sympa", action, token, liste)
 
-    elif("hackens-membres-editor@ens.fr" in mail["From"] or
-            "hackens-editor@ens.fr" in mail["From"]):
-        # TODO
-        subject = mail.get_payload()[1].get_payload()[0]['Subject']
-        author = mail.get_payload()[1].get_payload()[0]['From']
-        for line in reversed(body):
-            try:
-                line = line.decode('utf-8').strip()
-            except UnicodeError:
-                line = line.decode('iso-8859-1').strip()
-            if line.lower().startswith("subject") and subject is None:
-                subject = ':'.join(line.split(':')[1:]).strip()
-            if line.lower().startswith("from") and author is None:
-                author = ':'.join(line.split(':')[1:]).strip()
-
-        content = (mail.get_payload()[0]
-                    .get_payload(decode=True)
-                    .decode('utf-8'))
-        for line in content.split('\n'):
-            if line.strip().startswith("DISTRIBUTE"):
-                line = line.split(" ")
-                ident = line[-1].strip()
-                liste = line[1].strip()
-                break
-        data = ["nouveau", ident, liste, subject, author]
+    elif("hackens-membres-editor@ens.fr" in mail["To"] or
+            "hackens-editor@ens.fr" in mail["To"]):
+        try:
+            multipart_msg = mail.get_payload(1)
+            if multipart_msg.is_multipart():
+                subject = multipart_msg.get_payload(0)['Subject']
+                author = multipart_msg.get_payload(0)['From']
+        except (IndexError, TypeError):
+            return False
+        main_msg = mail.get_payload(0)
+        match = re.search("\nDISTRIBUTE (\S) (\S)\n", str(main_msg))
+        if not match:
+            return False
+        liste = match.group(1)
+        token = match.group(2)
+        return ("distribution", "nouveau", token, liste, subject, author)
 
 
 if __name__ == "__main__":
@@ -75,13 +69,13 @@ if __name__ == "__main__":
         result, data = conn.uid('search', None, "ALL")
         uids_list = data[0].split()
         for uid in uids_list:
-            print(uid)
-            result, data = conn.fetch(uid, "(RFC822)")
+            result, data = conn.uid("fetch", uid, "(RFC822)")
             handle_raw_email(data[0][1])
 
         # Delete parsed emails
-        #conn.uid("store", ", ".join(uids_list), "+FLAGS", "(\Deleted)")
-        #conn.expunge()
+        for uid in uids_list:
+            conn.uid("store", uid.decode("utf-8"), "+FLAGS", "(\\Deleted)")
+        conn.expunge()
     finally:
         try:
             conn.close()
