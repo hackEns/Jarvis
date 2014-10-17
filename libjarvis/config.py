@@ -98,6 +98,10 @@ class Config():
         self.set("emails_sender", "user@example.org")
         self.set("debug", False)
         self.set("version", self.VERSION)
+        # Imap for the moderation emails
+        self.set("imap_server", "")
+        self.set("imap_user", "")
+        self.set("imap_password", "")
         self.save()
 
     def load(self):
