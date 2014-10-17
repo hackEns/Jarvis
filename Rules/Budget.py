@@ -1,3 +1,5 @@
+import datetime
+
 from ._shared import *
 
 
@@ -40,9 +42,9 @@ class Budget(Rule):
             # If no budget specified, put it in current year
             now = datetime.datetime.now()
             if now.month >= 9:
-                budget = str(year) + " / " + str(year + 1)
+                budget = str(now.year) + " / " + str(now.year + 1)
             else:
-                budget = str(year - 1) + " / " + str(year)
+                budget = str(now.year - 1) + " / " + str(now.year)
 
         if args[1] == "ajoute":
             if comment == "":

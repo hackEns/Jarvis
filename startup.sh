@@ -11,7 +11,18 @@
 
 #!/bin/sh
 
-su jarvis
+start_ssh() {
+  while true; do
+    # If tunnel is not started yet
+    if ! nc -z localhost 3306; then
+      echo "Starting SSH tunnel"
+      # Open SSH tunnel for MySQL
+      ssh -NfL 3306:localhost:3306 hackens@hackens.org &
+    fi
+    sleep 1
+  done
+}
+
 
 gpio export 1 out
 gpio export 7 out
@@ -20,9 +31,6 @@ until ping -c 4 hackens.org > /dev/null 2>&1; do
     sleep 2
 done
 
-if ! nc -z localhost 3306; then
-  # Open SSH tunnel for MySQL
-  ssh -NfL 3306:localhost:3306 hackens@hackens.org &
-fi
+start_ssh &
 
 screen -dmS jarvis && screen -S jarvis -p 0 -X stuff "~/Jarvis/jarvis.py$(printf \\r)"
