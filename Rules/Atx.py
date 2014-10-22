@@ -1,5 +1,5 @@
 from ._shared import *
-
+import wiringpi2
 
 class Atx(Rule):
     """Handles RepRap ATX"""

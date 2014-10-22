@@ -10,7 +10,7 @@ class Log(Rule):
     def __init__(self, bot, config):
         self.config = config
         self.bot = bot
-        self.log_cache = deque("", self.config.get("log_cache_size"))
+        self.log_cache = deque(maxlen=self.config.get("log_cache_size"))
         self.log_save_buffer = ""
         self.log_save_buffer_count = 0
 

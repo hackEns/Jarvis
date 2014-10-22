@@ -1,4 +1,7 @@
 import subprocess
+import wiringpi2
+import struct
+import os
 from ._shared import *
 
 
@@ -11,7 +14,7 @@ class Lumiere(Rule):
         self.leds = None
         self.current_leds = "off"
 
-    def lumiere(r, v, b):
+    def lumiere(self, r, v, b):
         msg = [0x80]
         for c in [r, v, b]:
             if c < 0 or c > 255:
@@ -47,17 +50,17 @@ class Lumiere(Rule):
                     self.current_leds = ("(" + str(R) + ", " +
                                          str(G) + ", " +
                                          str(B) + ")")
-                    self.ans(serv,
+                    self.bot.ans(serv,
                              author,
                              "LED réglée sur " + self.current_leds)
                 else:
-                    self.ans(serv,
+                    self.bot.ans(serv,
                              author,
                              "Impossible de régler les LEDs à cette valeur.")
             except (AssertionError, ValueError):
                 raise InvalidArgs
         elif len(args) == 2:
-            script = os.path.join(self.basepath + "data/leds", args[1]) + ".py"
+            script = os.path.join(self.bot.basepath + "data/leds", args[1]) + ".py"
             if os.path.isfile(script):
                 self.leds = subprocess.Popen(['python', script],
                                              stdout=subprocess.DEVNULL)

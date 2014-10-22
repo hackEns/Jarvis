@@ -11,7 +11,8 @@ class Lien(Rule):
         self.config = config
         self.last_added_link = ""
 
-    def edit_link(search, private):
+    def edit_link(self, serv, author, search, private):
+        base_params = (("do", "api"), ("token", self.config.shaarli_token))
         r = requests.get(self.config.get("shaarli_url"),
                          params=base_params + (search,))
         if r.status_code != requests.codes.ok or r.text == "":
@@ -71,16 +72,16 @@ class Lien(Rule):
                 private = -1
             ok = False
             if len(args) == 2:
-                if self.edit_link(("url", self.last_added_link),
+                if self.edit_link(serv, author, ("url", self.last_added_link),
                                   private) is not False:
                     ok = True
             else:
                 for arg in args[2:]:
-                    if arg.startswith(config.get("shaarli_url")):
+                    if arg.startswith(self.config.get("shaarli_url")):
                         small_hash = arg.split('?')[-1]
                     else:
                         small_hash = arg
-                    if(self.edit_link(("hash", small_hash), private) is not False
+                    if(self.edit_link(serv, author, ("hash", small_hash), private) is not False
                        and ok is False):
                         ok = True
             if ok:

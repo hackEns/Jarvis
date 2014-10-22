@@ -1,4 +1,6 @@
 from ._shared import *
+import wiringpi2
+import time
 
 
 class Camera(Rule):
@@ -9,7 +11,7 @@ class Camera(Rule):
         self.bot = bot
         self.pos = "0°"
 
-    def camera(angle):
+    def camera(self, angle):
         if angle < 0 or angle > 180:
             return False
         towrite = int(127+int(127*float(angle)/180))

@@ -9,7 +9,7 @@ class Emprunt(Rule):
     def __init__(self, bot):
         self.bot = bot
 
-    def padding(number):
+    def padding(self, number):
         if number < 10:
             return "0"+str(number)
         else:

@@ -1,4 +1,4 @@
-from ._shared import *
+from ._shared import InvalidArgs
 from .Log import Log
 from .Aide import Aide
 from .Atx import Atx

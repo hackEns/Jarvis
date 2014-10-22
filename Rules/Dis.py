@@ -1,5 +1,5 @@
 from ._shared import *
-
+import subprocess
 
 class Dis(Rule):
     """Say something"""

@@ -41,8 +41,8 @@ class Historique(Rule):
            (len(self.history) == 0 or self.history[-1] != insert)):
             self.history.append(insert)
             while len(self.history) > self.config.get("history_length"):
-                self.history.popleft()
-                self.write_history()
+                self.history.pop(0)
+                self.write()
 
     def write(self):
         write = ''

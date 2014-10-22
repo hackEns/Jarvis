@@ -1,5 +1,5 @@
 from ._shared import *
-
+import datetime
 
 class Courses(Rule):
     """Handles shopping list"""
