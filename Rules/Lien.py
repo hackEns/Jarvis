@@ -12,7 +12,7 @@ class Lien(Rule):
         self.last_added_link = ""
 
     def edit_link(self, serv, author, search, private):
-        base_params = (("do", "api"), ("token", self.config.shaarli_token))
+        base_params = (("do", "api"), ("token", self.config.get("shaarli_token")))
         r = requests.get(self.config.get("shaarli_url"),
                          params=base_params + (search,))
         if r.status_code != requests.codes.ok or r.text == "":
