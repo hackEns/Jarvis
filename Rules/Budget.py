@@ -17,13 +17,13 @@ class Budget(Rule):
         try:
             amount = float(args[2].strip(" €"))
             first_index = 3
-        except (KeyError, ValueError):
+        except ValueError:
             try:
                 amount = float(args[3].strip(" €"))
                 if args[2] == "dépense":
                     amount = -amount
                 first_index = 4
-            except (KeyError, ValueError):
+            except (IndexError, ValueError):
                 raise InvalidArgs
 
         try:
@@ -34,7 +34,7 @@ class Budget(Rule):
             else:
                 budget = ""
             comment = ' '.join(comment)
-        except KeyError:
+        except IndexError:
             comment = ""
             budget = ""
 

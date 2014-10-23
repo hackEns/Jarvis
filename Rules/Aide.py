@@ -12,7 +12,7 @@ class Aide(Rule):
         """Prints help"""
         args = [i.lower() for i in args]
         # args[0] est toujours 'aide' (à priori)
-        # args[1] est (potentiellement) la commande pour laquelle on veut l'aide
+        # args[1] est la commande pour laquelle on veut l'aide, ou vide
         serv.privmsg(author,
                      self.config.get("desc") + " Commandes disponibles :")
         if len(args) > 1:
