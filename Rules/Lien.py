@@ -15,7 +15,7 @@ class Lien(Rule):
         base_params = (("do", "api"), ("token", self.config.get("shaarli_token")))
         r = requests.get(self.config.get("shaarli_url"),
                          params=base_params + (search,))
-        if r.status_code != requests.codes.ok or r.text == "":
+        if r.status_code != requests.codes.OK or r.text == "":
             if private >= 0:
                 self.bot.ans(serv, author,
                              "Impossible d'éditer le lien " +

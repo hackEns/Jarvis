@@ -27,7 +27,7 @@ def set_hsv(h, s, v):
 	b = int(255 * b)
 	set_rgb(r, g, b)
 
-if _name__ = "__main__":
+if __name__ == "__main__":
     fixed_color = tuple(sys.argv[3:6]) if len(sys.argv) > 3 else None
     rate = float(sys.argv[2]) if len(sys.argv) > 2 else None
 

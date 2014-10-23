@@ -170,11 +170,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.nickserved = True
         elif(ev.arguments[0].strip().startswith("oui")):
             id = ev.arguments[0].replace("oui", "").strip()
-            self.retour_priv(self, ev.source.nick, id)
+            self.retour_priv(serv, ev.source.nick, id)
         elif(config.get("authorized_queries") == [] or
              (config.get("authorized_queries") is not None and
               ev.source.nick in config.get("authorized_queries"))):
-            self.on_pubmsg(self, serv, ev)
+            self.on_pubmsg(serv, ev)
 
     def on_pubmsg(self, serv, ev):
         """Handles the messages on the chan"""
@@ -328,7 +328,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         bdd_cursor.close()
         bdd.close()
 
-    def retour_priv(self, author, id):
+    def retour_priv(self, serv, author, id):
         """Handles end of borrowings with private answers to notifications"""
         query = ("UPDATE borrowings SET back=1 WHERE id=%s")
         values = (id,)
@@ -340,10 +340,10 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         bdd_cursor = bdd.cursor()
         bdd_cursor.execute(query, values)
         if bdd_cursor.rowcount > 0:
-            self.privmsg(author,
-                         "Retour de "+args[1]+" enregistré.")
+            serv.privmsg(author,
+                         "Retour de "+id+" enregistré.")
         else:
-            self.privmsg(author,
+            serv.privmsg(author,
                          "Emprunt introuvable.")
         bdd_cursor.close()
         bdd.close()
@@ -365,7 +365,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                            (now + delta, delta, now))
         for (id_field, borrower, tool, from_field, until) in bdd_cursor:
             notif = ("Tu as emprunté "+tool+" depuis le " +
-                     datetime.strftime(from_field, "%d/%m/%Y") +
+                     from_field.strftime("%d/%m/%Y") +
                      " et tu devais le " +
                      "rendre aujourd'hui. L'as-tu rendu ?")
             if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
