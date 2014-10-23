@@ -18,6 +18,7 @@ from .Moderation import Moderation
 from .Tchou_Tchou import Tchou_Tchou
 from .Update import Update
 from .Version import Version
+from .Ping import Ping
 
 __all__ = [
     "InvalidArgs",
@@ -39,5 +40,6 @@ __all__ = [
     "Moderation",
     "Tchou_Tchou",
     "Update",
-    "Version"
+    "Version",
+    "Ping",
 ]

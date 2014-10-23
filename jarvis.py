@@ -62,6 +62,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.tchou_tchou = Tchou_Tchou(self)
         self.update = Update(self, config)
         self.version = Version(self, config)
+        self.ping = Ping(self, config)
 
         self.rules = {}
         self.add_rule("aide",
@@ -127,6 +128,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("version",
                       self.version,
                       help_msg="version")
+        self.add_rule("ping", self.ping, help_msg="pong")
 
         # Init stream
         self.streamh = None
