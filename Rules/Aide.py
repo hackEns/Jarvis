@@ -11,15 +11,15 @@ class Aide(Rule):
     def __call__(self, serv, author, args):
         """Prints help"""
         args = [i.lower() for i in args]
+        # args[0] est toujours 'aide' (à priori)
+        # args[1] est (potentiellement) la commande pour laquelle on veut l'aide
         serv.privmsg(author,
                      self.config.get("desc") + " Commandes disponibles :")
-        if len(args) > 1 and args[0] == "aide":
+        if len(args) > 1:
             if args[1] in self.bot.rules:
                 serv.privmsg(author, self.bot.rules[args[1]]['help'])
             else:
                 serv.privmsg(author, "Je n'ai pas compris…")
-        elif args[0] != "aide" and args[0] in self.bot.rules:
-            serv.privmsg(author, self.bot.rules[args[0]]['help'])
         else:
             for rule in sorted(self.bot.rules):
                 serv.privmsg(author, self.bot.rules[rule]['help'])
