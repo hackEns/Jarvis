@@ -182,8 +182,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         author = ev.source.nick
         raw_msg = ev.arguments[0]
         msg = raw_msg.strip()
-        http_re = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]" +\
-                  "|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
+        http_re = r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]" +\
+                  r"|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
         urls = re.findall(http_re, msg)
         # If found some urls in the message, handles them
         if len(urls) > 0:
