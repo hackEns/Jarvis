@@ -14,7 +14,7 @@ class Camera(Rule):
     def camera(self, angle):
         if angle < 0 or angle > 180:
             return False
-        towrite = int(127+int(127*float(angle)/180))
+        towrite = int(127 + int(127 * float(angle) / 180))
         wiringpi2.pwmWrite(self.config.get("pin_cam"), towrite)
         time.sleep(0.100)
 
@@ -28,10 +28,10 @@ class Camera(Rule):
             if angle < 0 or angle > 180:
                 raise ValueError
             if self.camera(angle):
-                self.pos = str(angle)+"°"
+                self.pos = str(angle) + "°"
                 self.bot.ans(serv,
                              author,
-                             "Caméra réglée à "+angle+"°.")
+                             "Caméra réglée à " + angle + "°.")
             else:
                 self.bot.ans(serv,
                              author,
@@ -48,7 +48,8 @@ class Camera(Rule):
                 angle = int(matchs[0]["value"])
                 if self.camera(angle):
                     self.pos = args[1]
-                    self.bot.ans(serv, author, "Caméra réglée à "+angle+"°.")
+                    self.bot.ans(serv, author,
+                                 "Caméra réglée à " + angle + "°.")
                 else:
                     self.bot.ans(serv,
                                  author,

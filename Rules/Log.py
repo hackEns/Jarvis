@@ -22,7 +22,8 @@ class Log(Rule):
         """
         if len(self.log_cache) >= self.config.get("log_cache_size"):
             self.cache_to_buffer()
-            if self.log_save_buffer_count > self.config.get("log_save_buffer_size"):
+            save_buffer_size = self.config.get("log_save_buffer_size")
+            if self.log_save_buffer_count > save_buffer_size:
                 self.flush_buffer()
 
         self.log_cache.appendleft((datetime.now().hour,

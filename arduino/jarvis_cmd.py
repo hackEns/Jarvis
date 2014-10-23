@@ -29,7 +29,7 @@ def camera(angle):
         print("L'angle doit être entre 0 et 180")
         return False
 
-    towrite = int(127+int(127*float(angle)/180))
+    towrite = int(127 + int(127 * float(angle) / 180))
     try:
         ser = initSerial(config.cam_path)
         send(ser, 1, towrite)
@@ -46,7 +46,7 @@ def lumiere(r, v, b):
             print("La couleur doit être entre 0 et 255")
             return False
         else:
-            msg.append(int(c/2))
+            msg.append(int(c / 2))
 
     try:
         ser = initSerial(config.lum_path)
@@ -71,11 +71,11 @@ def atx(etat):
 def dis(something):
     try:
         return subprocess.call(["espeak",
-                         "-vfrench+m5",
-                         "-p 5",
-                         "-s 50",
-                         "-a 200",
-                         something])
+                                "-vfrench+m5",
+                                "-p 5",
+                                "-s 50",
+                                "-a 200",
+                                something])
     except FileNotFoundError:
         print("Impossible de parler : espeak n'est peut-être pas installé")
         return False

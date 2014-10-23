@@ -32,7 +32,7 @@ class Historique(Rule):
             self.bot.say(serv, "Pas d'historique disponible.")
         else:
             for hist in self.history[start:end]:
-                self.bot.say(serv, hist['cmd']+" par "+hist['author'])
+                self.bot.say(serv, hist['cmd'] + " par " + hist['author'])
 
     def add(self, author, cmd):
         """Adds something to history"""
@@ -47,14 +47,14 @@ class Historique(Rule):
     def write(self):
         write = ''
         for hist in self.history:
-            write += hist["author"]+"\t"+hist["cmd"]+"\n"
-        with open(self.basepath+"data/history", 'w+') as fh:
+            write += hist["author"] + "\t" + hist["cmd"] + "\n"
+        with open(self.basepath + "data/history", 'w+') as fh:
             fh.write(write)
 
     def read(self):
         history = []
-        if os.path.isfile(self.basepath+"data/history"):
-            with open(self.basepath+"data/history", 'r') as fh:
+        if os.path.isfile(self.basepath + "data/history"):
+            with open(self.basepath + "data/history", 'r') as fh:
                 for line in fh.readlines():
                     line = [i.strip() for i in line.split('\t')]
                     history.append({'author': line[0], 'cmd': line[1]})

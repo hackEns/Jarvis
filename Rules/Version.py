@@ -11,7 +11,8 @@ class Version(Rule):
     def get_version(self):
         """Returns the bot version"""
         return (self.config.get("nick") + "Bot version " +
-                self.config.get("version") + " by " + self.config.get("author"))
+                self.config.get("version") + " by " +
+                self.config.get("author"))
 
     def __call__(self, serv, author, args):
         """Prints current version"""

@@ -5,9 +5,10 @@
 Script to handle the webcam streaming.
 """
 
-import os, sys
+import os
+import sys
 
-#import xmlrpc.client as xmlrpcclient
+# import xmlrpc.client as xmlrpcclient
 import xmlrpclib
 import threading
 import datetime
@@ -21,29 +22,36 @@ import pylab
 
 import pygst
 pygst.require("0.10")
+
 import gst
-import gobject, glib
+import gobject
+import glib
 glib.threads_init()
 
-pipeline_string= """v4l2src device=%s ! tee name=videoout ! queue leaky=1 ! \
-videorate ! video/x-raw-yuv,width=800,height=600,fps=24,framerate=(fraction)24/1 ! queue leaky=1 ! \
-ffmpegcolorspace ! \
-rsvgoverlay name=graphoverlay width-relative=0.2 height-relative=0.3 x-relative=0.02 y-relative=0.02 ! \
-textoverlay name=overlay text="---" shaded-background=true font-desc="Ubuntu Mono 11" deltay=15 ! \
-ffmpegcolorspace ! \
-theoraenc bitrate=8000 ! queue leaky=1 ! oggmux ! fdsink""" % sys.argv[1]#muxout. pulsesrc ! audio/x-raw-int,rate=22000,channels=1,width=16 ! queue ! audioconvert ! vorbisenc ! queue ! muxout. oggmux name=muxout ! fdsink""" % sys.argv[1]
+pipeline_string = """v4l2src device=%s ! tee name=videoout ! queue leaky=1 ! \
+videorate ! video/x-raw-yuv,width=800,height=600,fps=24,\
+framerate=(fraction)24/1 ! queue leaky=1 ! ffmpegcolorspace ! \
+rsvgoverlay name=graphoverlay width-relative=0.2 height-relative=0.3 \
+x-relative=0.02 y-relative=0.02 ! textoverlay name=overlay text="---" \
+shaded-background=true font-desc="Ubuntu Mono 11" deltay=15 ! \
+ffmpegcolorspace ! theoraenc bitrate=8000 ! queue leaky=1 ! oggmux ! \
+fdsink""" % sys.argv[1]
+# muxout. pulsesrc ! audio/x-raw-int,rate=22000,channels=1,width=16 ! queue !
+# audioconvert ! vorbisenc ! queue ! muxout. oggmux name=muxout ! fdsink""" %
+# sys.argv[1]
+
 
 def on_message(bus, message):
     t = message.type
     if t == gst.MESSAGE_ERROR:
         err, debug = message.parse_error()
-        print >> sys.stderr,"Error: %s" % err, debug
+        print >> sys.stderr, "Error: %s" % err, debug
     elif t == gst.MESSAGE_WARNING:
         err, debug = message.parse_warning()
-        print >> sys.stderr,"Warning: %s" % err, debug
+        print >> sys.stderr, "Warning: %s" % err, debug
     elif t == gst.MESSAGE_INFO:
         err, debug = message.parse_info()
-        print >> sys.stderr,"Info: %s" % err, debug
+        print >> sys.stderr, "Info: %s" % err, debug
 
 pipeline = gst.parse_launch(pipeline_string)
 overlay = pipeline.get_by_name("overlay")
@@ -53,11 +61,13 @@ bus = pipeline.get_bus()
 bus.add_signal_watch()
 bus.connect("message", on_message)
 
+
 def format_duration(delta):
-    return str(datetime.timedelta(seconds = int(delta)))
+    return str(datetime.timedelta(seconds=int(delta)))
 
 TEMP_LOG_SIZE = 60
 LINEWIDTH = 10
+
 
 def make_temp_graph(temp_log):
     first_log = temp_log[0]
@@ -68,7 +78,7 @@ def make_temp_graph(temp_log):
         temps[name] = zip(*[entry[name] for entry in temp_log])
 
     pylab.rcParams['ytick.major.pad'] = '20'
-    fig = pylab.figure(figsize = (10, 10))
+    fig = pylab.figure(figsize=(10, 10))
 
     try:
         fig.patch.set_facecolor('gray')
@@ -89,18 +99,20 @@ def make_temp_graph(temp_log):
             thistemps = temps[name]
             extra = (TEMP_LOG_SIZE - len(thistemps[0]))
             idxs = range(extra, extra + len(thistemps[0]))
-            pylab.plot(idxs, thistemps[0], '-', linewidth = LINEWIDTH)
-            pylab.plot(idxs, thistemps[1], '--', linewidth = LINEWIDTH)
+            pylab.plot(idxs, thistemps[0], '-', linewidth=LINEWIDTH)
+            pylab.plot(idxs, thistemps[1], '--', linewidth=LINEWIDTH)
 
         ax.get_xaxis().set_ticks([])
         for item in ax.get_xticklabels() + ax.get_yticklabels():
             item.set_fontsize(30)
 
         svg = io.StringIO()
-        fig.savefig(svg, format = 'svg', bbox_inches = 'tight', pad_inches = 0.1, facecolor = fig.get_facecolor())
+        fig.savefig(svg, format='svg', bbox_inches='tight',
+                    pad_inches=0.1, facecolor=fig.get_facecolor())
     finally:
         pylab.close(fig)
     return svg.getvalue()
+
 
 class StatusHandler(object):
 
@@ -113,11 +125,14 @@ class StatusHandler(object):
             status = rpc.status()
             status_text = ""
             if status["filename"] is not None:
-                status_text += "Printing %s\n" % os.path.basename(status["filename"])
+                status_text += \
+                    "Printing %s\n" % os.path.basename(status["filename"])
             if status["eta"] is not None:
                 secondsremain, secondsestimate, progress = status["eta"]
-                status_text += "Est: %s of %s remaining\n" % (format_duration(secondsremain),
-                                                            format_duration(secondsestimate))
+                status_text += "Est: %s of %s remaining\n" % (
+                    format_duration(secondsremain),
+                    format_duration(secondsestimate)
+                )
             if status["temps"] is not None:
                 temps = status["temps"]
                 self.temp_log.append(temps)
@@ -125,8 +140,11 @@ class StatusHandler(object):
                     self.temp_log.pop(0)
                 graphsvg = make_temp_graph(self.temp_log)
                 graphoverlay.set_property("data", graphsvg)
-                #print >> sys.stderr, len(self.temp_log), graphsvg
-                status_text += "Temps: H: %s/%s, B: %s/%s\n" % (temps["T"][0], temps["T"][1], temps["B"][0], temps["B"][1])
+                # print >> sys.stderr, len(self.temp_log), graphsvg
+                status_text += \
+                    "Temps: H: %s/%s, B: %s/%s\n" % \
+                    (temps["T"][0], temps["T"][1],
+                     temps["B"][0], temps["B"][1])
             if status["z"] is not None:
                 status_text += "Z = %s\n" % status["z"]
             if not status_text:

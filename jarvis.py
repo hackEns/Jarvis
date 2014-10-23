@@ -16,7 +16,6 @@ import shlex
 import smtplib
 import ssl
 import subprocess
-import random
 
 from Rules import *
 from libjarvis.config import Config
@@ -36,12 +35,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                config.get("desc"))
         else:
             self.ssl_factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
-            ircbot.SingleServerIRCBot.__init__(self, [(config.get("server"),
-                                                       config.get("port"))],
-                                               config.get("nick"),
-                                               config.get("desc"),
-                                               connect_factory=self.ssl_factory)
-        self.basepath = os.path.dirname(os.path.realpath(__file__))+"/"
+            ircbot.SingleServerIRCBot.__init__(
+                self, [(config.get("server"), config.get("port"))],
+                config.get("nick"),
+                config.get("desc"),
+                connect_factory=self.ssl_factory)
+        self.basepath = os.path.dirname(os.path.realpath(__file__)) + "/"
         self.nickserved = False
 
         self.log = Log(self, config)
@@ -155,7 +154,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def on_welcome(self, serv, ev):
         """Upon server connection, handles nickserv"""
-        serv.privmsg("nickserv", "identify "+config.get("password"))
+        serv.privmsg("nickserv", "identify " + config.get("password"))
         serv.join(config.get("channel"))
 
         self.connection.execute_delayed(random.randrange(3600, 84600),
@@ -181,17 +180,20 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         author = ev.source.nick
         raw_msg = ev.arguments[0]
         msg = raw_msg.strip()
-        urls = re.findall("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
-                          msg)
+        http_re = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]" +\
+                  "|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
+        urls = re.findall(http_re, msg)
         # If found some urls in the message, handles them
         if len(urls) > 0:
             self.lien.on_links(serv, author, urls)
         # If "perdu" or "jeu" or "game" or "42"  in the last message, do Jeu
-        if ("perdu" in msg or "jeu" in msg or "game" in msg or "42" in msg) and random.randint(0, 10) == 7:
+        if ("perdu" in msg or "jeu" in msg or "game" in msg or "42" in msg) \
+           and random.randint(0, 10) == 7:
             self.jeu(serv)
         msg = msg.split(':', 1)
         if(msg[0].strip() == self.connection.get_nickname() and
-           (config.get("authorized") == [] or author in config.get("authorized"))):
+           (config.get("authorized") == [] or
+           author in config.get("authorized"))):
             try:
                 msg = shlex.split(msg[1])
             except ValueError:
@@ -207,11 +209,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         tools.warning("Debug : " + str(msg))
                     self.aide(serv, author, msg)
             elif msg[0] == "<3" or msg[0] == "♥":
-                self.ans(serv, author, "Merci "+author+", moi aussi je t'aime très fort ! #Kikoo")
+                self.ans(serv, author, "Merci " + author +
+                         ", moi aussi je t'aime très fort ! #Kikoo")
             else:
                 self.ans(serv, author, "Je n'ai pas compris…")
         elif(msg[0].strip().lower() == "aziz" and
-             (config.get("authorized") == [] or author in config.get("authorized"))):
+             (config.get("authorized") == [] or
+              author in config.get("authorized"))):
             # Easter egg
             try:
                 msg = shlex.split(msg[1])
@@ -231,7 +235,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def ans(self, serv, user, message):
         """Answers to specified user"""
-        serv.privmsg(config.get("channel"), user+": "+message)
+        serv.privmsg(config.get("channel"), user + ": " + message)
 
     def say(self, serv, message):
         """Say something on the channel"""
@@ -239,7 +243,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def has_admin_rights(self, serv, author):
         """Checks that author is in admin users"""
-        if config.get("admins") is not None and author not in config.get("admins"):
+        if config.get("admins") is not None and \
+           author not in config.get("admins"):
             self.ans(serv, author,
                      "Vous n'avez pas l'autorisation d'accéder à cette " +
                      "commande.")
@@ -264,17 +269,20 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                                                      "/dev/video*"],
                                                     stdout=subprocess.PIPE)
                 if self.oggfwd is None:
-                    self.oggfwd = subprocess.Popen([config.get("oggfwd_path") +
-                                                    "/oggfwd",
-                                                    config.get("stream_server"),
-                                                    config.get("stream_port"),
-                                                    config.get("stream_pass"),
-                                                    config.get("stream_mount"),
-                                                    "-n "+config.get("stream_name"),
-                                                    "-d "+config.get("stream_desc"),
-                                                    "-u "+config.get("stream_url"),
-                                                    "-g "+config.get("stream_genre")],
-                                                   stdin=self.streamh.stdout)
+                    self.oggfwd = subprocess.Popen(
+                        [
+                            config.get("oggfwd_path") +
+                            "/oggfwd",
+                            config.get("stream_server"),
+                            config.get("stream_port"),
+                            config.get("stream_pass"),
+                            config.get("stream_mount"),
+                            "-n " + config.get("stream_name"),
+                            "-d " + config.get("stream_desc"),
+                            "-u " + config.get("stream_url"),
+                            "-g " + config.get("stream_genre")
+                        ],
+                        stdin=self.streamh.stdout)
                 self.ans(serv, author, "Retransmission lancée !")
             except (IOError, ValueError):
                 self.ans(serv,
@@ -321,7 +329,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         bdd_cursor.execute(query, values)
         if bdd_cursor.rowcount > 0:
             self.ans(serv, author,
-                     "Retour de "+args[1]+" enregistré.")
+                     "Retour de " + args[1] + " enregistré.")
         else:
             self.ans(serv, author,
                      "Emprunt introuvable.")
@@ -341,7 +349,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         bdd_cursor.execute(query, values)
         if bdd_cursor.rowcount > 0:
             serv.privmsg(author,
-                         "Retour de "+id+" enregistré.")
+                         "Retour de " + id + " enregistré.")
         else:
             serv.privmsg(author,
                          "Emprunt introuvable.")
@@ -364,16 +372,16 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         bdd_cursor.execute(query,
                            (now + delta, delta, now))
         for (id_field, borrower, tool, from_field, until) in bdd_cursor:
-            notif = ("Tu as emprunté "+tool+" depuis le " +
+            notif = ("Tu as emprunté " + tool + " depuis le " +
                      from_field.strftime("%d/%m/%Y") +
                      " et tu devais le " +
                      "rendre aujourd'hui. L'as-tu rendu ?")
             if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
                         borrower) is not None:
                 notif = "Salut,\n\n" + notif
-                notif += ("\n\nPour confirmer le retour, répond à cet e-mail " +
-                          "ou connecte-toi sur IRC (#hackens) pour " +
-                          "le confirmer directement à Jarvis.")
+                notif += ("\n\nPour confirmer le retour, répond à cet e-mail" +
+                          " ou connecte-toi sur IRC (#hackens) pour" +
+                          " le confirmer directement à Jarvis.")
                 msg = MIMEText(notif)
                 msg["Subject"] = "Emprunt en hack'ave"
                 msg["From"] = config.get("emails_sender")

@@ -38,7 +38,8 @@ class Moderation(Rule):
             return
         self.bot.ans(serv, author, message)
         for (ident, subject, author, liste) in bdd_cursor:
-            self.bot.say(serv, "["+liste+"] : « "+subject+" » par "+author)
+            self.bot.say(serv, "[" + liste + "] : « " + subject + " » par " +
+                         author)
         bdd_cursor.close()
         bdd.close()
 

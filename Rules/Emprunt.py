@@ -11,7 +11,7 @@ class Emprunt(Rule):
 
     def padding(self, number):
         if number < 10:
-            return "0"+str(number)
+            return "0" + str(number)
         else:
             return str(number)
 
@@ -83,7 +83,7 @@ class Emprunt(Rule):
         bdd.close()
 
         self.bot.ans(serv, author,
-                     "Emprunt de "+tool+" jusqu'au " +
+                     "Emprunt de " + tool + " jusqu'au " +
                      self.padding(day) + "/" + self.padding(month) + " à " +
                      self.padding(hour) + "h noté.")
 

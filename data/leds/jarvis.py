@@ -15,10 +15,12 @@ try:
 except:
     sys.exit("Erreur à l'ouverture du port série.")
 
+
 def set_rgb(r, g, b):
     global ser
-    for j in [0x80, int(int(r)/2), int(int(g)/2), int(int(b)/2)]:
+    for j in [0x80, int(int(r) / 2), int(int(g) / 2), int(int(b) / 2)]:
         ser.write(chr(j))
+
 
 def set_hsv(h, s, v):
     r, g, b = colorsys.hsv_to_rgb(h, s, v)
@@ -31,11 +33,11 @@ if __name__ == "__main__":
     while True:
         h = 0.66 + (random.random() - 0.5) / 20
         for step in range(10):
-            #v = 3 * random.random() / 4 + 0.2
+            # v = 3 * random.random() / 4 + 0.2
             v = random.random()
             if random.random() > 0.8:
                 s = random.random() / 4 + 0.75
             set_hsv(h, 1, v)
             time.sleep(0.01)
 
-#set_color(0, 0, 0)
+# set_color(0, 0, 0)

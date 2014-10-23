@@ -2,6 +2,7 @@ from ._shared import *
 import subprocess
 import wiringpi2
 
+
 class Info(Rule):
     """Display infos"""
 

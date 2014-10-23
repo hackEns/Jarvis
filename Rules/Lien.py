@@ -12,7 +12,8 @@ class Lien(Rule):
         self.last_added_link = ""
 
     def edit_link(self, serv, author, search, private):
-        base_params = (("do", "api"), ("token", self.config.get("shaarli_token")))
+        base_params = (("do", "api"),
+                       ("token", self.config.get("shaarli_token")))
         r = requests.get(self.config.get("shaarli_url"),
                          params=base_params + (search,))
         if r.status_code != requests.codes.OK or r.text == "":
@@ -20,12 +21,12 @@ class Lien(Rule):
                 self.bot.ans(serv, author,
                              "Impossible d'éditer le lien " +
                              search[1] + ". "
-                             "Status code : "+str(r.status_code))
+                             "Status code : " + str(r.status_code))
             else:
                 self.bot.ans(serv, author,
                              "Impossible de supprimer le lien " +
                              search[1] + ". "
-                             "Status code : "+str(r.status_code))
+                             "Status code : " + str(r.status_code))
             return False
         key = r.json()['linkdate']
         if private >= 0:
@@ -41,12 +42,12 @@ class Lien(Rule):
                 self.bot.ans(serv, author,
                              "Impossible d'éditer le lien " +
                              search[1] + ". "
-                             "Status code : "+str(r.status_code))
+                             "Status code : " + str(r.status_code))
             else:
                 self.bot.ans(serv, author,
                              "Impossible de supprimer le lien " +
                              search[1] + ". "
-                             "Status code : "+str(r.status_code))
+                             "Status code : " + str(r.status_code))
             return False
 
     def __call__(self, serv, author, args):
@@ -81,7 +82,9 @@ class Lien(Rule):
                         small_hash = arg.split('?')[-1]
                     else:
                         small_hash = arg
-                    if(self.edit_link(serv, author, ("hash", small_hash), private) is not False
+                    if(self.edit_link(serv, author,
+                                      ("hash", small_hash),
+                                      private) is not False
                        and ok is False):
                         ok = True
             if ok:
@@ -94,20 +97,21 @@ class Lien(Rule):
         for url in set(urls):
             if url.startswith(self.config.get("shaarli_url")):
                 continue
-            base_params = (("do", "api"), ("token", self.config.get("shaarli_token")))
+            base_params = (("do", "api"),
+                           ("token", self.config.get("shaarli_token")))
             r = requests.get(self.config.get("shaarli_url"),
                              params=base_params + (("url", url),))
             if r.text != "" and len(r.json()) > 0:
                 continue
             post = {"url": url,
-                    "description": "Posté par "+author+".",
+                    "description": "Posté par " + author + ".",
                     "private": 0}
             r = requests.post(self.config.get("shaarli_url"),
                               params=base_params, data=post)
             if r.status_code != 200 and r.status_code != 201:
                 self.bot.ans(serv, author,
                              "Impossible d'ajouter le lien à shaarli. " +
-                             "Status code : "+str(r.status_code))
+                             "Status code : " + str(r.status_code))
             else:
                 self.last_added_link = url
 

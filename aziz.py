@@ -28,14 +28,15 @@ def handle_raw_email(body):
             if part.get_content_type() != "text/plain":
                 continue
             decoded = part.get_payload(decode=True).decode('utf-8')
-            decoded = decoded.replace("Le message", '').replace("\r\n", " ").strip().split(" ")
+            decoded = decoded.replace("Le message", '').replace("\r\n", " ") \
+                .strip().split(" ")
             token = decoded[0]
             liste = decoded[4]
             action = decoded[-1].strip('.')
         return ("sympa", action, token, liste)
 
     elif("hackens-membres-editor@ens.fr" in mail["To"] or
-            "hackens-editor@ens.fr" in mail["To"]):
+         "hackens-editor@ens.fr" in mail["To"]):
         try:
             multipart_msg = mail.get_payload(1)
             if multipart_msg.is_multipart():
@@ -44,7 +45,7 @@ def handle_raw_email(body):
         except (IndexError, TypeError):
             return False
         main_msg = mail.get_payload(0)
-        match = re.search("\nDISTRIBUTE (\S) (\S)\n", str(main_msg))
+        match = re.search(r"\nDISTRIBUTE (\S) (\S)\n", str(main_msg))
         if not match:
             return False
         liste = match.group(1)
@@ -53,13 +54,13 @@ def handle_raw_email(body):
 
 
 if __name__ == "__main__":
-    print('Connecting to '+config.get("imap_server")+'… ', end='')
+    print('Connecting to ' + config.get("imap_server") + '… ', end='')
     conn = imaplib.IMAP4_SSL(config.get("imap_server"))
     print('Connected')
     to_send = []
 
     try:
-        print('Logging as '+config.get("imap_user")+'… ', end='')
+        print('Logging as ' + config.get("imap_user") + '… ', end='')
         conn.login(config.get("imap_user"), config.get("imap_password"))
     except:
         print('Failed')
@@ -84,14 +85,17 @@ if __name__ == "__main__":
             parsed = handle_raw_email(data[0][1])
 
             if parsed[0] == "sympa":
-                query = "UPDATE moderation SET moderated=%s WHERE token=%s AND liste=%s"
+                query = "UPDATE moderation SET moderated=%s WHERE \
+                         token=%s AND liste=%s"
                 if parsed[1] == "rejeté":
                     values = (-1, parsed[2], parsed[3])
                 elif parsed[1] == "distribué":
                     values = (1, parsed[2], parsed[3])
             elif parsed[0] == "distribution":
-                query = "INSERT INTO moderation(subject, author, date, liste, token, moderated) VALUES(%s, %s, %s, %s, %s, %s)"
-                values = (parsed[3], parsed[4], datetime.datetime.now(), parsed[2], 1)
+                query = "INSERT INTO moderation(subject, author, date, liste, \
+                token, moderated) VALUES(%s, %s, %s, %s, %s, %s)"
+                values = (parsed[3], parsed[4],
+                          datetime.datetime.now(), parsed[2], 1)
             else:
                 sys.exit(1)
             bdd_cursor.execute(query, values)

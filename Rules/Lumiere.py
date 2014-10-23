@@ -20,7 +20,7 @@ class Lumiere(Rule):
             if c < 0 or c > 255:
                 return False
             else:
-                msg.append(int(c/2))
+                msg.append(int(c / 2))
 
         ser = wiringpi2.serialOpen(self.config.get("pin_led"), 115200)
         for j in msg:
@@ -51,16 +51,18 @@ class Lumiere(Rule):
                                          str(G) + ", " +
                                          str(B) + ")")
                     self.bot.ans(serv,
-                             author,
-                             "LED réglée sur " + self.current_leds)
+                                 author,
+                                 "LED réglée sur " + self.current_leds)
                 else:
-                    self.bot.ans(serv,
-                             author,
-                             "Impossible de régler les LEDs à cette valeur.")
+                    self.bot.ans(
+                        serv,
+                        author,
+                        "Impossible de régler les LEDs à cette valeur.")
             except (AssertionError, ValueError):
                 raise InvalidArgs
         elif len(args) == 2:
-            script = os.path.join(self.bot.basepath + "data/leds", args[1]) + ".py"
+            script = \
+                os.path.join(self.bot.basepath + "data/leds", args[1]) + ".py"
             if os.path.isfile(script):
                 self.leds = subprocess.Popen(['python', script],
                                              stdout=subprocess.DEVNULL)

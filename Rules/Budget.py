@@ -50,7 +50,8 @@ class Budget(Rule):
             if comment == "":
                 raise InvalidArgs
 
-            query = ("INSERT INTO budget(amount, author, date, comment, budget) " +
+            query = ("INSERT INTO budget(amount, author, date, comment, " +
+                     "budget) " +
                      "VALUES(%s, %s, %s, %s, %s)")
             values = (amount, author, datetime.datetime.now(), comment, budget)
             try:
@@ -68,11 +69,11 @@ class Budget(Rule):
             if budget != '':
                 query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s " +
                          "AND comment LIKE %s AND budget=%s")
-                values = (amount, '%'+comment+'%', budget)
+                values = (amount, '%' + comment + '%', budget)
             else:
                 query = ("SELECT COUNT(*) as nb FROM budget WHERE amount=%s " +
                          "AND comment LIKE %s")
-                values = (amount, '%'+comment+'%')
+                values = (amount, '%' + comment + '%')
             try:
                 bdd = self.bot.mysql_connect(serv)
                 assert(bdd is not None)

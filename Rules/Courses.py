@@ -1,6 +1,7 @@
 from ._shared import *
 import datetime
 
+
 class Courses(Rule):
     """Handles shopping list"""
 
@@ -11,7 +12,8 @@ class Courses(Rule):
         """Handles shopping list"""
         if len(args) < 3:
             if len(args) == 1:
-                query = ("SELECT item, author, date FROM shopping WHERE bought=0")
+                query = \
+                    "SELECT item, author, date FROM shopping WHERE bought=0"
                 try:
                     bdd = self.bot.mysql_connect(serv)
                     assert(bdd is not None)
@@ -19,9 +21,14 @@ class Courses(Rule):
                     return
                 bdd_cursor = bdd.cursor()
                 bdd_cursor.execute(query)
-                serv.privmsg(author, 'Voici la liste de courses (également consultable sur http://hackens.org/jarvis?do=courses)')
+                serv.privmsg(
+                    author,
+                    'Voici la liste de courses (également consultable sur " + \
+                    "http://hackens.org/jarvis?do=courses)'
+                )
                 for row in bdd_cursor:
-                    serv.privmsg(author, '{0} (ajouté par {1} le {2})'.format(*row))
+                    serv.privmsg(author,
+                                 '{0} (ajouté par {1} le {2})'.format(*row))
                 return
             else:
                 raise InvalidArgs
@@ -33,7 +40,7 @@ class Courses(Rule):
         if args[1] == "acheter":
             query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
                      "comment LIKE %s")
-            values = (args[2], '%'+comment+'%')
+            values = (args[2], '%' + comment + '%')
             try:
                 bdd = self.bot.mysql_connect(serv)
                 assert(bdd is not None)
@@ -58,7 +65,7 @@ class Courses(Rule):
         elif args[1] == "annuler":
             query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
                      "comment LIKE %s")
-            values = (args[2], '%'+comment+'%')
+            values = (args[2], '%' + comment + '%')
             try:
                 bdd = self.bot.mysql_connect(serv)
                 assert(bdd is not None)
@@ -82,7 +89,7 @@ class Courses(Rule):
         elif args[1] == "acheté":
             query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
                      "comment LIKE %s AND bought=0")
-            values = (args[2], '%'+comment+'%')
+            values = (args[2], '%' + comment + '%')
             try:
                 bdd = self.bot.mysql_connect(serv)
                 assert(bdd is not None)

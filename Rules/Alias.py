@@ -25,7 +25,7 @@ class Alias(Rule):
             self.write_alias()
             self.bot.ans(serv, author,
                          "Nouvel alias ajouté : " +
-                         "{"+args[2]+", "+args[3]+", "+args[4]+"}")
+                         "{" + args[2] + ", " + args[3] + ", " + args[4] + "}")
             return
         elif len(args) > 1:
             aliases = [i for i in self.aliases if i['type'] == args[1]]
@@ -35,10 +35,10 @@ class Alias(Rule):
             types = set([i['type'] for i in aliases])
             for i in types:
                 self.bot.ans(serv, author,
-                             "Liste des alias disponibles pour "+i+" :")
+                             "Liste des alias disponibles pour " + i + " :")
                 to_say = ""
                 for j in [k for k in self.aliases if k['type'] == i]:
-                    to_say += "{"+j['name']+", "+j['value']+"}, "
+                    to_say += "{" + j['name'] + ", " + j['value'] + "}, "
                 to_say = to_say.strip(", ")
                 self.bot.say(serv, to_say)
         else:
@@ -48,17 +48,20 @@ class Alias(Rule):
         write = {}
         for item in self.aliases:
             try:
-                write[item["type"]] += item["name"]+":"+item["value"]+"\n"
+                write[item['type']] += '{name}:{value}\n'.format(
+                    name=item['name'],
+                    value=item['value'],
+                )
             except KeyError:
-                write[item["type"]] = item["name"]+":"+item["value"]+"\n"
+                write[item["type"]] = item["name"] + ":" + item["value"] + "\n"
         for type, aliases in write.items():
-            with open(self.basepath+"data/"+type+".alias", "w+") as fh:
+            with open(self.basepath + "data/" + type + ".alias", "w+") as fh:
                 fh.write(aliases)
 
     def read_alias(self):
         alias = []
-        if os.path.isfile(self.basepath+"data/camera.alias"):
-            with open(self.basepath+"data/camera.alias", 'r') as fh:
+        if os.path.isfile(self.basepath + "data/camera.alias"):
+            with open(self.basepath + "data/camera.alias", 'r') as fh:
                 for line in fh.readlines():
                     line = [i.strip() for i in line.split(':')]
                     alias.append({"type": "camera",
