@@ -1,6 +1,0 @@
-
-			</tbody>
-		</table>
-	</body>
-</html>
-

@@ -4,16 +4,16 @@ import datetime
 import os
 import re
 import sys
-import time
+
+from bottle import app, run, route, static_file
 
 nb_colors = 37
 
-if len(sys.argv) < 3:
-    print("Usage: "+sys.argv[0]+" LOGFILE OUTPUT")
+if len(sys.argv) < 2:
+    print("Usage: "+sys.argv[0]+" LOGFILE")
     sys.exit(1)
 
 logfile = sys.argv[1]
-output = sys.argv[2]
 
 msg = re.compile('^(\d\d)/(\d\d)/(\d\d\d\d) (\d\d):(\d\d) <(.*?)> (.*)$',)
 
@@ -72,29 +72,85 @@ def format_msg(msg):
     return msg
 
 
-if __name__ == "__main__":
-    write_output = ""
-    with open(script_path+'begin.php', 'r') as begin:
-        write_output = begin.read()+"\n"
-
+def get_log():
+    m = []
     with open(logfile, 'r') as f:
-        for l in f:
-            m = msg.search(l)
-            if m is not None:
-                t = datetime.datetime(int(m.group(3)),
-                                      int(m.group(2)),
-                                      int(m.group(1)),
-                                      int(m.group(4)),
-                                      int(m.group(5)))
-                timestamp = time.mktime(t.timetuple())
-                write_output += '<?php if (%d < $max_time && %d >= $min_time) { ?>' % (timestamp, timestamp)
-                write_output += "\n"
-                write_output += '<tr><td>%s</td><td>&lt;%s&gt;</td><td>%s</td></tr>' % (format_time(t), colorize(m.group(6)), format_msg(m.group(7)))
-                write_output += "\n"
-                write_output += '<?php } ?>\n'
+        for l in f.readlines():
+            m.append(msg.search(l))
+        return m
 
-    with open(script_path+'end.php', 'r') as end:
-        write_output += end.read()+"\n"
 
-    with open(output, 'w') as fh:
-        fh.write(write_output)
+def write_log(logs_matchs):
+    write_output = ""
+    for m in [i for i in logs_matchs if i is not None]:
+        t = datetime.datetime(int(m.group(3)),
+                              int(m.group(2)),
+                              int(m.group(1)),
+                              int(m.group(4)),
+                              int(m.group(5)))
+        timestamp = t.timestamp()
+        write_output += '<tr><td>%s</td><td>&lt;%s&gt;</td><td>%s</td></tr>' % (format_time(t), colorize(m.group(6)), format_msg(m.group(7)))
+        write_output += "\n"
+    return write_output
+
+
+@route("/from/<get_from:int>/to/<get_to:int>", name="from_to", template="index")
+def from_to(get_from, get_to):
+    parsed_log = get_log()
+    matching_log = []
+    for m in parsed_log:
+        t = datetime.datetime(int(m.group(3)),
+                              int(m.group(2)),
+                              int(m.group(1)),
+                              int(m.group(4)),
+                              int(m.group(5)))
+        if t.timestamp() > get_from and t.timestamp() < get_to:
+            matching_log.append(m)
+    now = datetime.datetime.fromtimestamp((get_from + get_to) / 2)
+    midnight = now.replace(hour=0, minute=0, second=0,
+                           microsecond=0).timestamp()
+    start_time_yesterday = midnight - 86400
+    end_time_yesterday = midnight - 1
+    start_time_tomorrow = midnight + 86400
+    end_time_tomorrow = midnight + 2*86400 - 1
+    return {"log": write_log(matching_log),
+            "start_time_yesterday": int(start_time_yesterday),
+            "end_time_yesterday": int(end_time_yesterday),
+            "start_time_tomorrow": int(start_time_tomorrow),
+            "end_time_tomorrow": int(end_time_tomorrow),
+            "day": now.strftime("%d/%m/%Y")}
+
+
+@route("/all", name="all", template="index")
+def all():
+    parsed_log = get_log()
+    now = datetime.datetime.now()
+    midnight = now.replace(hour=0, minute=0, second=0,
+                           microsecond=0).timestamp()
+    start_time_yesterday = midnight - 86400
+    end_time_yesterday = midnight - 1
+    start_time_tomorrow = midnight + 86400
+    end_time_tomorrow = midnight + 2*86400 - 1
+    return {"log": write_log(parsed_log),
+            "start_time_yesterday": int(start_time_yesterday),
+            "end_time_yesterday": int(end_time_yesterday),
+            "start_time_tomorrow": int(start_time_tomorrow),
+            "end_time_tomorrow": int(end_time_tomorrow),
+            "day": now.strftime("%d/%m/%Y")}
+
+
+@route("/", name="index", template="index")
+def index():
+    now = datetime.datetime.now()
+    midnight = now.replace(hour=0, minute=0, second=0,
+                           microsecond=0).timestamp()
+    return from_to(midnight, midnight + 86400 - 1)
+
+
+@route('/style.css')
+def callback():
+    return static_file('style.css', root='.')
+
+
+if __name__ == "__main__":
+    run(host="0.0.0.0", port=8081)
