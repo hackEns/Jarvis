@@ -5,6 +5,7 @@ from ._shared import *
 
 class Alias(Rule):
     """Handles aliases"""
+# TODO
 
     def __init__(self, bot, basepath):
         self.bot = bot

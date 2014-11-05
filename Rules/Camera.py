@@ -9,11 +9,12 @@ class Camera(Rule):
     def __init__(self, bot, config):
         self.config = config
         self.bot = bot
-        self.pos = "0°"
+        self.pos = "0°, 0°"
 
-    def camera(self, angle):
-        if angle < 0 or angle > 180:
+    def camera(self, angle1, angle2):
+        if angle1 < 0 or angle1 > 180 or angle2 < 0 or angle2 > 180:
             return False
+        # TODO
         towrite = int(127 + int(127 * float(angle) / 180))
         wiringpi2.pwmWrite(self.config.get("pin_cam"), towrite)
         time.sleep(0.100)
@@ -21,17 +22,18 @@ class Camera(Rule):
     def __call__(self, serv, author, args):
         """Controls camera"""
         args = [i.lower() for i in args]
-        if len(args) < 2:
+        if len(args) < 3:
             raise InvalidArgs
         try:
-            angle = int(args[1])
-            if angle < 0 or angle > 180:
+            angle1 = int(args[1])
+            angle2 = int(args[2])
+            if angle1 < 0 or angle1 > 180 or angle2 < 0 or angle2 > 180:
                 raise ValueError
-            if self.camera(angle):
-                self.pos = str(angle) + "°"
+            if self.camera(angle1, angle2):
+                self.pos = str(angle) + "°, " + str(angle2) + "°"
                 self.bot.ans(serv,
                              author,
-                             "Caméra réglée à " + angle + "°.")
+                             "Caméra réglée à (" + pos + ").")
             else:
                 self.bot.ans(serv,
                              author,
@@ -39,17 +41,19 @@ class Camera(Rule):
         except ValueError:
             # Argument is not a valid angle, it may be an alias
             alias = args[1]
-            angle = -1
+            angle1 = -1
+            angle2 = -1
             matchs = [i for i in self.bot.alias.aliases
                       if i["type"] == "camera" and i["name"] == alias]
             if len(matchs) == 0:
                 raise InvalidArgs
             else:
-                angle = int(matchs[0]["value"])
-                if self.camera(angle):
+                angle1 = int(matchs[0]["value1"])
+                angle2 = int(matchs[0]["value2"])
+                if self.camera(angle1, angle2):
                     self.pos = args[1]
                     self.bot.ans(serv, author,
-                                 "Caméra réglée à " + angle + "°.")
+                                 "Caméra réglée à (" + str(angle1) + "°, "+str(angle2)+"°).")
                 else:
                     self.bot.ans(serv,
                                  author,
