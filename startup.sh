@@ -35,6 +35,7 @@ then
   start_ssh &
 
   screen -dmS jarvis && screen -S jarvis -p 0 -X stuff "~/Jarvis/jarvis.py$(printf \\r)"
+  screen -dmS irclogs && screen -S irclogs -p 0 -X stuff "~/Jarvis/irclog/irclog.py ~/Jarvis/data/jarvis.all.log$(printf \\r)"
 else
   su jarvis -c "/etc/init.d/jarvis.sh"
 fi

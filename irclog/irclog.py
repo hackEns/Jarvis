@@ -74,10 +74,13 @@ def format_msg(msg):
 
 def get_log():
     m = []
-    with open(logfile, 'r') as f:
-        for l in f.readlines():
-            m.append(msg.search(l))
-        return m
+    try:
+        with open(logfile, 'r') as f:
+            for l in f.readlines():
+                m.append(msg.search(l))
+    except FileNotFoundError:
+        pass
+    return m
 
 
 def write_log(logs_matchs):
