@@ -27,6 +27,7 @@ Jarvis can be easily installed on a Raspberry Pi, starting from an up-to-date Ra
   * This folder contains some example arduino scripts to use an Arduino and a regular PC instead of the Raspberry Pi GPIO pins. They are just here for demo purpose and are no longer used. Thus, they may be unstable.
 * `aziz.py` is our moderation script, to inform us of new emails waiting for moderation. It's basically a Jarvis plugin.
 * `data` folder contains the scripts, aliases etc you put into Jarvis.
+* `irclog` folder contains the script to convert the Jarvis log as a nice HTML page.
 * `jarvis.all.log` (created by Jarvis) is the complete log of the watched channel.
 * `jarvis.py` is the main script, which serves the bot.
 * `jarvis_cmd.py` is a collection of functions to translate Jarvis actions to GPIO actions etc.

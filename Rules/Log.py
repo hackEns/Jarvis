@@ -26,7 +26,10 @@ class Log(Rule):
             if self.log_save_buffer_count > save_buffer_size:
                 self.flush_buffer()
 
-        self.log_cache.appendleft((datetime.now().hour,
+        self.log_cache.appendleft((datetime.now().day,
+                                   datetime.now().month,
+                                   datetime.now().year,
+                                   datetime.now().hour,
                                    datetime.now().minute,
                                    author,
                                    msg))
@@ -34,7 +37,7 @@ class Log(Rule):
     def cache_to_buffer(self):
         """Pop a line from log cache and append it to save buffer"""
         t = self.log_cache.pop()
-        self.log_save_buffer += "%02d:%02d <%s> %s\n" % t
+        self.log_save_buffer += "%02d/%02d/%04d %02d:%02d <%s> %s\n" % t
         self.log_save_buffer_count += 1
 
     def flush_buffer(self):
@@ -60,7 +63,7 @@ class Log(Rule):
         end = args[3]
         found_end = False
         found_start = False
-        for (h, m, auth, msg) in self.log_cache:
+        for (d, m, y, h, m, auth, msg) in self.log_cache:
             end_index = msg.rfind(end)
             if not found_end and end_index >= 0:
                 msg = msg[:end_index + len(end)]

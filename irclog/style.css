@@ -1,0 +1,52 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #ddd;
+    padding: 0.1em 1em;
+    margin: 0;
+    color: #000;
+    font-family: sans-serif;
+}
+
+header h2 {
+    font-style: italic;
+    color: #444;
+    font-weight: normal;
+}
+
+td:nth-child(1) {
+    color: #888;
+}
+
+td:nth-child(2) {
+    font-weight: bold;
+    color: #888;
+    padding: 0 1em;
+    white-space: nowrap;
+}
+
+tr:nth-child(2n) {
+    background-color: #f8f8f8;
+}
+
+.longtime {
+    display: none;
+}
+
+td:hover .longtime {
+    display: block;
+    color: #eee;
+    background: #444;
+    position: absolute;
+    padding: 0.5em;
+    border-radius: 0.5em;
+}
+
+table {
+    width: 100%;
+    font-family: monospace;
+}
+
