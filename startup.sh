@@ -23,14 +23,18 @@ start_ssh() {
   done
 }
 
+if [[ "$USER" == "jarvis" ]]
+then
+  gpio export 1 out
+  gpio export 7 out
 
-gpio export 1 out
-gpio export 7 out
+  until ping -c 4 hackens.org > /dev/null 2>&1; do
+      sleep 2
+  done
 
-until ping -c 4 hackens.org > /dev/null 2>&1; do
-    sleep 2
-done
+  start_ssh &
 
-start_ssh &
-
-screen -dmS jarvis && screen -S jarvis -p 0 -X stuff "~/Jarvis/jarvis.py$(printf \\r)"
+  screen -dmS jarvis && screen -S jarvis -p 0 -X stuff "~/Jarvis/jarvis.py$(printf \\r)"
+else
+  su jarvis -c "/etc/init.d/jarvis.sh"
+fi

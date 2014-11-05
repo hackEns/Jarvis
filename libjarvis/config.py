@@ -136,7 +136,10 @@ class Config():
     def save(self):
         try:
             with open(self.config_path + "config.json", 'w') as fh:
-                fh.write(json.dumps(self.config))
+                fh.write(json.dumps(self.config,
+                                    sort_keys=True,
+                                    indent=4,
+                                    separators=(',', ': ')))
         except IOError:
             tools.warning("Could not write config file.")
             sys.exit(1)
