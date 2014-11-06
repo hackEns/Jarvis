@@ -9,14 +9,23 @@ class Camera(Rule):
     def __init__(self, bot, config):
         self.config = config
         self.bot = bot
-        self.pos = "0°, 0°"
+        self.pos = (0, 0)
+
+    def print_pos(self):
+        return "(%d°, %d°)" % self.pos
 
     def camera(self, angle1, angle2):
         if angle1 < 0 or angle1 > 180 or angle2 < 0 or angle2 > 180:
             return False
         # TODO
-        towrite = int(127 + int(127 * float(angle) / 180))
-        wiringpi2.pwmWrite(self.config.get("pin_cam"), towrite)
+        angle1 = int(127 + int(127 * float(angle1) / 180))
+        angle2 = int(127 + int(127 * float(angle2) / 180))
+        wiringpi2.pinMode(self.config.get("pin1_cam"), 1)
+        wiringpi2.softPwmCreate(self.config.get("pin1_cam"), 0, 100)
+        wiringpi2.softPwmWrite(self.config.get("pin1_cam"), angle1)
+        wiringpi2.pinMode(self.config.get("pin2_cam"), 1)
+        wiringpi2.softPwmCreate(self.config.get("pin2_cam"), 0, 100)
+        wiringpi2.softPwmWrite(self.config.get("pin2_cam"), angle2)
         time.sleep(0.100)
 
     def __call__(self, serv, author, args):
@@ -30,10 +39,10 @@ class Camera(Rule):
             if angle1 < 0 or angle1 > 180 or angle2 < 0 or angle2 > 180:
                 raise ValueError
             if self.camera(angle1, angle2):
-                self.pos = str(angle) + "°, " + str(angle2) + "°"
+                self.pos = (angle1, angle2)
                 self.bot.ans(serv,
                              author,
-                             "Caméra réglée à (" + pos + ").")
+                             "Caméra réglée à " + print_pos() + ".")
             else:
                 self.bot.ans(serv,
                              author,
@@ -51,9 +60,9 @@ class Camera(Rule):
                 angle1 = int(matchs[0]["value1"])
                 angle2 = int(matchs[0]["value2"])
                 if self.camera(angle1, angle2):
-                    self.pos = args[1]
+                    self.pos = (angle1, angle2)
                     self.bot.ans(serv, author,
-                                 "Caméra réglée à (" + str(angle1) + "°, "+str(angle2)+"°).")
+                                 "Caméra réglée à " + print_pos() + ".")
                 else:
                     self.bot.ans(serv,
                                  author,

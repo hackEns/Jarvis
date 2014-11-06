@@ -75,7 +75,8 @@ class Config():
         self.set("stream_genre", "")
         self.set("oggfwd_path", "")
         # Pins, uses BCM numbering
-        self.set("pin_cam", 18)  # To control the camera servo, PWM
+        self.set("pin1_cam", 18)  # To control the camera servo, PWM
+        self.set("pin2_cam", 18)  # To control the second camera servo, PWM
         self.set("pin_atx", 4)  # To control the ATX status via green wire
         self.set("pin_atx_status", 17)  # 5V, to get ATX status
         # RX/TX path in the filesystem to communicate with LED
