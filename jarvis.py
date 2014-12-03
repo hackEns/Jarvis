@@ -204,6 +204,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Handles the messages on the chan"""
         author = ev.source.nick
         raw_msg = ev.arguments[0]
+        self.log.add_cache(author, raw_msg) # Log each line
         msg = raw_msg.strip()
         http_re = r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]" +\
                   r"|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
@@ -256,14 +257,14 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                     if config.get("debug"):
                         tools.warning("Debug : " + str(msg))
                     self.aide(serv, author, msg)
-        self.log.add_cache(author, raw_msg)  # Log each line
 
     def ans(self, serv, user, message):
         """Answers to specified user"""
-        serv.privmsg(config.get("channel"), user + ": " + message)
+        self.say(serv, user + ": " + message)
 
     def say(self, serv, message):
         """Say something on the channel"""
+        self.log.add_cache(config.get("nick"), message) # Log each line
         serv.privmsg(config.get("channel"), message)
 
     def has_admin_rights(self, serv, author):
