@@ -4,9 +4,8 @@ from Rules._shared import *
 class Ping(Rule):
     """Prints pong"""
 
-    def __init__(self, bot, config):
+    def __init__(self, bot):
         self.bot = bot
-        self.config = config
 
     def __call__(self, serv, author, args):
         if len(args) > 0:
