@@ -74,7 +74,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="aide [commande]")
         self.add_rule("alias",
                       self.alias,
-                      help_msg="alias [categorie]")
+                      help_msg="alias [categorie], alias add type nom valeur, alias del type nom")
         self.add_rule("atx",
                       self.atx,
                       help_msg="atx on|off")

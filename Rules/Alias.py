@@ -20,13 +20,23 @@ class Alias(Rule):
                         if i["type"] == args[2] and i["name"] == args[3]]
             for d in doublons:
                 self.aliases.remove(d)
-            self.aliases.append({"type": args[2],
-                                 "name": args[3],
-                                 "value": json.loads(args[4])})
+            try:
+                self.aliases.append({"type": args[2],
+                                     "name": args[3],
+                                     "value": json.loads(args[4])})
+            except ValueError:
+                self.bot.ans(serv, author, "Valeur JSON invalide.")
+                return
             self.write_alias()
             self.bot.ans(serv, author,
                          "Nouvel alias ajouté : " +
                          "{" + args[2] + ", " + args[3] + ", " + args[4] + "}")
+            return
+        elif len(args) > 3 and args[1] == "del":
+            self.aliases = [alias for alias in self.aliases if not (alias["type"] == args[2] and alias["name"] == args[3])]
+            self.write_alias()
+            self.bot.ans(serv, author,
+                         "Alias supprimé.")
             return
         elif len(args) > 1:
             aliases = [i for i in self.aliases if i['type'] == args[1]]

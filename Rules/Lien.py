@@ -52,7 +52,8 @@ class Lien(Rule):
 
     def __call__(self, serv, author, args):
         """Handles links managements through Shaarli API"""
-        args[1] = args[1].lower()
+        if len(args) > 1:
+            args[1] = args[1].lower()
         if len(args) > 1 and args[1] == "dernier":
             self.bot.ans(serv, author, self.last_added_link)
             return
@@ -63,13 +64,13 @@ class Lien(Rule):
         if(len(args) > 1 and
            (args[1] in ["cache", "ignore", "affiche", "supprime"])):
             if args[1] == "cache" or args[1] == "ignore":
-                msg = "Liens rendus privés."
+                msg = "Lien rendus privés."
                 private = 1
             elif args[1] == "affiche":
-                msg = "Liens rendus publics."
+                msg = "Lien rendus publics."
                 private = 0
             else:
-                msg = "Liens supprimés."
+                msg = "Lien supprimés."
                 private = -1
             ok = False
             if len(args) == 2:
