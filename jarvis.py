@@ -178,8 +178,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         debug("Connected.")
         serv.privmsg("nickserv", "identify " + config.get("password"))
 
-        debug("Joining %s..."% (config.get("channel"),))
+        debug("Joining %s..." % (config.get("channel"),))
         serv.join(config.get("channel"))
+        debug("Joined.")
 
         print("WELCOME !")
 
