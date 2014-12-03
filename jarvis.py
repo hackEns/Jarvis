@@ -16,6 +16,7 @@ import shlex
 import smtplib
 import ssl
 import subprocess
+import sys
 
 from irc.client import Throttler
 
@@ -27,10 +28,19 @@ from libjarvis import tools
 config = Config()
 
 
+def printerr(msg):
+  sys.stderr.write(msg + "\n")
+  sys.stderr.flush()
+def nothing(msg):
+  pass
+debug = printerr if config.get("debug") else nothing
+
+
 class JarvisBot(ircbot.SingleServerIRCBot):
     """Main class for the Jarvis bot"""
 
     def __init__(self):
+        debug("Initialization...")
         if not config.get("use_ssl"):
             ircbot.SingleServerIRCBot.__init__(self, [(config.get("server"),
                                                        config.get("port"))],
@@ -138,8 +148,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.streamh = None
         self.oggfwd = None
 
+        debug("Initialized.")
+        debug("Connection to %s:%d as %s..." % (config.get("server"), config.get("port"), config.get("nick")))
+
     def add_rule(self, name, action, help_msg=""):
         name = name.lower()
+        debug("Adding rule `%s`" % (name,))
         if name not in self.rules:
             self.rules[name] = {}
         self.rules[name]['action'] = action
@@ -161,15 +175,17 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def on_welcome(self, serv, ev):
         """Upon server connection, handles nickserv"""
+        debug("Connected.")
         serv.privmsg("nickserv", "identify " + config.get("password"))
+
+        debug("Joining %s..."% (config.get("channel"),))
         serv.join(config.get("channel"))
 
         print("WELCOME !")
 
         self.connection.execute_delayed(random.randrange(3600, 84600),
                                         self.tchou_tchou, (serv,))
-        # self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
-        serv.privmsg("nickserv", "identify ")
+        self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
@@ -438,8 +454,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         return not config.get("debug")
 
 if __name__ == '__main__':
-    try:
-        with JarvisBot() as bot:
-            bot.start()
-    except KeyboardInterrupt:
-        pass
+  try:
+      with JarvisBot() as bot:
+          bot.start()
+  except KeyboardInterrupt:
+      pass
