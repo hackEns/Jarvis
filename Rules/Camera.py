@@ -57,8 +57,8 @@ class Camera(Rule):
             if len(matchs) == 0:
                 raise InvalidArgs
             else:
-                angle1 = int(matchs[0]["value1"])
-                angle2 = int(matchs[0]["value2"])
+                angle1 = int(matchs[0]["value"][0])
+                angle2 = int(matchs[0]["value"][1])
                 if self.camera(angle1, angle2):
                     self.pos = (angle1, angle2)
                     self.bot.ans(serv, author,

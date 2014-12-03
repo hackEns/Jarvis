@@ -1,0 +1,12 @@
+[
+  {
+    "type": "camera",
+    "name": "reprap",
+    "value": [55]
+  },
+  {
+    "type": "camera",
+    "name": "objets",
+    "value": [176]
+  }
+]

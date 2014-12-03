@@ -1,3 +1,4 @@
+import json
 import os
 
 from ._shared import *
@@ -5,12 +6,11 @@ from ._shared import *
 
 class Alias(Rule):
     """Handles aliases"""
-# TODO
 
     def __init__(self, bot, basepath):
         self.bot = bot
         self.basepath = basepath
-        self.aliases = self.read_alias()
+        self.aliases = self.read_aliases()
 
     def __call__(self, serv, author, args):
         """Handles aliases"""
@@ -22,7 +22,7 @@ class Alias(Rule):
                 self.aliases.remove(d)
             self.aliases.append({"type": args[2],
                                  "name": args[3],
-                                 "value": args[4]})
+                                 "value": json.loads(args[4])})
             self.write_alias()
             self.bot.ans(serv, author,
                          "Nouvel alias ajouté : " +
@@ -39,36 +39,27 @@ class Alias(Rule):
                              "Liste des alias disponibles pour " + i + " :")
                 to_say = ""
                 for j in [k for k in self.aliases if k['type'] == i]:
-                    to_say += "{" + j['name'] + ", " + j['value'] + "}, "
+                    to_say += "{" + j['name'] + ", " + json.dumps(j['value']) + "}, "
                 to_say = to_say.strip(", ")
                 self.bot.say(serv, to_say)
         else:
             self.bot.ans(serv, author, "Aucun alias défini.")
 
     def write_alias(self):
-        write = {}
-        for item in self.aliases:
-            try:
-                write[item['type']] += '{name}:{value}\n'.format(
-                    name=item['name'],
-                    value=item['value'],
-                )
-            except KeyError:
-                write[item["type"]] = item["name"] + ":" + item["value"] + "\n"
-        for type, aliases in write.items():
-            with open(self.basepath + "data/" + type + ".alias", "w+") as fh:
-                fh.write(aliases)
+        with open(self.basepath + "data/aliases", "w+") as fh:
+            json.dump(self.aliases, fh,
+                      sort_keys=True,
+                      indent=4, separators=(',', ': '))
 
-    def read_alias(self):
-        alias = []
-        if os.path.isfile(self.basepath + "data/camera.alias"):
-            with open(self.basepath + "data/camera.alias", 'r') as fh:
-                for line in fh.readlines():
-                    line = [i.strip() for i in line.split(':')]
-                    alias.append({"type": "camera",
-                                  "name": line[0],
-                                  "value": line[1]})
-        return sorted(alias, key=lambda k: k['type'])
+    def read_aliases(self):
+        aliases = []
+        if os.path.isfile(self.basepath + "data/aliases"):
+            with open(self.basepath + "data/aliases", 'r') as fh:
+                try:
+                    aliases = json.load(fh)
+                except ValueError:
+                    pass
+        return sorted(aliases, key=lambda k: k['type'])
 
     def close(self):
         pass

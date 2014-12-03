@@ -17,6 +17,8 @@ import smtplib
 import ssl
 import subprocess
 
+from irc.client import Throttler
+
 from Rules import *
 from libjarvis.config import Config
 from libjarvis import tools
@@ -27,6 +29,7 @@ config = Config()
 
 class JarvisBot(ircbot.SingleServerIRCBot):
     """Main class for the Jarvis bot"""
+
     def __init__(self):
         if not config.get("use_ssl"):
             ircbot.SingleServerIRCBot.__init__(self, [(config.get("server"),
@@ -40,6 +43,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 config.get("nick"),
                 config.get("desc"),
                 connect_factory=self.ssl_factory)
+        # self.connection.set_rate_limit(10)
         self.basepath = os.path.dirname(os.path.realpath(__file__)) + "/"
         self.nickserved = False
 
@@ -147,6 +151,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             return bdd
         except mysql.connector.Error as err:
             if config.get("debug"):
+                print(datetime.datetime.now().timestamp())
                 tools.warning("Debug : " + str(err))
             if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
                 serv.say("Accès refusé à la BDD.")
@@ -159,9 +164,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         serv.privmsg("nickserv", "identify " + config.get("password"))
         serv.join(config.get("channel"))
 
+        print("WELCOME !")
+
         self.connection.execute_delayed(random.randrange(3600, 84600),
                                         self.tchou_tchou, (serv,))
-        self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
+        # self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
         serv.privmsg("nickserv", "identify ")
 
     def on_privmsg(self, serv, ev):

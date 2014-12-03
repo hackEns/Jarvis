@@ -1,4 +1,4 @@
-from ._shared import *
+from Rules._shared import *
 
 
 class Ping(Rule):
