@@ -11,31 +11,27 @@
 
 #!/bin/sh
 
-start_ssh() {
-  while true; do
-    # If tunnel is not started yet
-    if ! nc -z localhost 3306; then
-      echo "Starting SSH tunnel"
-      # Open SSH tunnel for MySQL
-      ssh -NfL 3306:localhost:3306 hackens@hackens.org &
-    fi
-    sleep 1
-  done
-}
-
 if [[ "$USER" == "jarvis" ]]
 then
   gpio export 1 out
   gpio export 7 out
 
+  # On attend que l'internet soit fonctionnel
   until ping -c 4 hackens.org > /dev/null 2>&1; do
-      sleep 2
+    sleep 2
   done
 
-  start_ssh &
+  # Mise en place du tunnel ssh
+  autossh -NfL 3306:localhost:3306 hackens@hackens.org
 
-  screen -dmS jarvis && screen -S jarvis -p 0 -X stuff "~/Jarvis/jarvis.py$(printf \\r)"
-  screen -dmS irclogs && screen -S irclogs -p 0 -X stuff "~/Jarvis/irclog/irclog.py ~/Jarvis/data/jarvis.all.log$(printf \\r)"
+  # On lance jarvis dans un screen
+  screen -dmS jarvis
+  # Jarvis lui-même
+  screen -S jarvis -p 0 -X stuff "~/Jarvis/jarvis.py$(printf \\r)"
+
+  # Les logs de Jarvis
+  screen -S jarvis -X screen
+  screen -S jarvis -p 1 -X stuff "~/Jarvis/irclog/irclog.py ~/Jarvis/data/jarvis.all.log$(printf \\r)"
 else
-  su jarvis -c "/etc/init.d/jarvis.sh"
+  su jarvis -c "$0"
 fi
