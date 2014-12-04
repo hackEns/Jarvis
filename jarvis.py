@@ -49,7 +49,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
         self.log = Log(self, config)
         self.aide = Aide(self, config)
-        self.atx = Atx(self, config)
         self.alias = Alias(self, self.basepath)
         self.budget = Budget(self)
         self.camera = Camera(self, config)
@@ -75,9 +74,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.add_rule("alias",
                       self.alias,
                       help_msg="alias [categorie], alias add type nom valeur, alias del type nom")
-        self.add_rule("atx",
-                      self.atx,
-                      help_msg="atx on|off")
         self.add_rule("budget",
                       self.budget,
                       help_msg="budget (ajoute|retire) [dépense|crédit] " +
@@ -103,7 +99,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                       help_msg="historique nb_lignes|(début fin)")
         self.add_rule("info",
                       self.info,
-                      help_msg="info [atx|camera|leds|stream]")
+                      help_msg="info [camera|leds|stream]")
         self.add_rule("jeu",
                       self.jeu,
                       help_msg="jeu")
