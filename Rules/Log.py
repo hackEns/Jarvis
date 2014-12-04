@@ -1,5 +1,6 @@
 from collections import deque  # Fifo for log cache
 from datetime import datetime
+from re import match
 
 from ._shared import *
 
@@ -53,34 +54,68 @@ class Log(Rule):
             self.cache_to_buffer()
         self.flush_buffer()
 
+    def load_logfile(self, logfile):
+        """Load cache object from file"""
+        # TODO
+        return []
+
     def __call__(self, serv, author, args):
         """Handles logging"""
-        if len(args) != 4 or args[2] != '...':
+        if len(args) != 4 or match('\.\.+', args[2]):
             raise InvalidArgs
 
         tmp = []
         start = args[1]
         end = args[3]
         found_end = False
-        found_start = False
-        for (d, m, y, h, m, auth, msg) in self.log_cache:
-            end_index = msg.rfind(end)
-            if not found_end and end_index >= 0:
-                msg = msg[:end_index + len(end)]
-                found_end = True
-            if found_end:
-                start_index = msg.find(start)
-                if start_index >= 0:
-                    msg = msg[start_index:]
-                    tmp.append((h, m, auth, msg))
-                    found_start = True
-                    break
-                tmp.append((h, m, auth, msg))
+        found = False
 
-        if found_start:
+        step == 0 # Search step (where to look for logs, i.e. first in cache and then in logfile)
+
+        while not found:
+
+            if step == 0:
+                messages = self.log_cache
+            elif step == 1:
+                messages = self.load_logfile(self.config.get("log_all_file"))
+            else:
+                break # abort search (no more place to look for)
+
+            for (d, m, y, h, m, auth, msg) in messages:
+                # Ignore messages that ping the bot
+                if msg[:len(self.config.get("nick"))] == self.config.get("nick"):
+                    if found_end:
+                        tmp.append((h, m, auth, msg))
+                    continue
+
+                if not found_end:
+                    # Search end sentence
+                    if end in msg:
+                        found_end = True
+
+                if found_end:
+                    # Accumulate messages
+                    tmp.append((h, m, auth, msg))
+
+                    # Search start sentence
+                    if start in msg:
+                        found = True
+                        break
+
+            step += 1
+
+        if found:
+            # Save to file
             with open(self.config.get("log_file"), 'a') as f:
+                f.write("---\n")
+
                 for i in range(len(tmp)):
-                    f.write("%d:%d <%s> %s\n" % tmp.pop())
+                    msg = tmp.pop()
+                    f.write("%d:%d <%s> %s\n" % msg)
+
+                    if end in msg: # Stop at first occurrence of end sentence
+                        break
+
             self.bot.ans(serv, author, "Loggé !")
         else:
             self.bot.ans(serv, author, "Je n'ai pas trouvé")
