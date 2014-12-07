@@ -1,8 +1,4 @@
 irc>=9.0
-jaraco.timing>=1.0
-jaraco.util>=10.6
-more-itertools>=2.2
 psycopg2>=2.5.4
 requests>=2.4.3
-six>=1.8.0
 wiringpi2>=1.0.10
