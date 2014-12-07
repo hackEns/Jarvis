@@ -15,7 +15,7 @@ class Info(Rule):
     def __call__(self, serv, author, args):
         """Display infos"""
         args = [i.lower() for i in args]
-        all_items = ['atx', 'leds', 'stream', 'camera']
+        all_items = ['leds', 'stream', 'camera']
         greenc = "\x02\x0303"
         redc = "\x02\x0304"
         endc = "\x03\x02"
@@ -27,24 +27,18 @@ class Info(Rule):
             raise InvalidArgs
         to_say = "Statut : "
 
-        if 'atx' in infos_items:
-            if self.atx_status == 0:
-                to_say += "ATX : " + redc + "off" + endc + ", "
-            else:
-                to_say += "ATX : " + greenc + "on" + endc + ", "
-
         if 'leds' in infos_items:
-            if isinstance(self.bot.leds, subprocess.Popen):
-                poll = self.bot.leds.poll()
+            if isinstance(self.bot.lumiere.leds, subprocess.Popen):
+                poll = self.bot.lumiere.leds.poll()
                 if poll is not None and poll != 0:
-                    self.bot.leds = None
-                    self.bot.current_leds = "off"
-            if self.bot.current_leds is not None:
-                if self.bot.current_leds == "off":
+                    self.bot.lumiere.leds = None
+                    self.bot.lumiere.current_leds = "off"
+            if self.bot.lumiere.current_leds is not None:
+                if self.bot.lumiere.current_leds == "off":
                     to_say += "LEDs : " + redc + "off" + endc + ", "
                 else:
                     to_say += ("LEDs : " +
-                               greenc + self.bot.current_leds + endc + ", ")
+                               greenc + self.bot.lumiere.current_leds + endc + ", ")
             else:
                 to_say += "LEDs : " + redc + "off" + endc + ", "
 
@@ -58,7 +52,7 @@ class Info(Rule):
                 to_say += "Stream : " + redc + "HS" + endc + ", "
 
         if 'camera' in infos_items:
-            to_say += "Caméra : " + self.bot.camera.pos + ", "
+            to_say += "Caméra : " + ("%d, %d" % self.bot.camera.pos) + ", "
         to_say = to_say.strip(", ")
         self.bot.ans(serv, author, to_say)
 
