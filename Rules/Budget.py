@@ -55,7 +55,7 @@ class Budget(Rule):
                      "VALUES(%s, %s, %s, %s, %s)")
             values = (amount, author, datetime.datetime.now(), comment, budget)
             try:
-                bdd = self.bot.mysql_connect(serv)
+                bdd = self.bot.pgsql_connect(serv)
                 assert(bdd is not None)
             except AssertionError:
                 return
@@ -63,7 +63,6 @@ class Budget(Rule):
             bdd_cursor.execute(query, values)
             self.bot.ans(serv, author, "Facture ajoutée.")
             bdd_cursor.close()
-            bdd.close()
 
         elif args[1] == "retire":
             if budget != '':
@@ -75,7 +74,7 @@ class Budget(Rule):
                          "AND comment LIKE %s")
                 values = (amount, '%' + comment + '%')
             try:
-                bdd = self.bot.mysql_connect(serv)
+                bdd = self.bot.pgsql_connect(serv)
                 assert(bdd is not None)
             except AssertionError:
                 return
@@ -96,7 +95,6 @@ class Budget(Rule):
             bdd_cursor.execute(query, values)
             self.bot.ans(serv, author, "Facture retirée.")
             bdd_cursor.close()
-            bdd.close()
         else:
             raise InvalidArgs
 

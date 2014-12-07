@@ -41,7 +41,7 @@ class TestBudget(unittest.TestCase):
         for args in all_args:
             self.bot.reset_mock()
             self.budget(self.serv, self.author, args)
-            execute = self.bot.mysql_connect().cursor().execute
+            execute = self.bot.pgsql_connect().cursor().execute
             call_args = execute.call_args_list
             self.assertEqual(len(call_args), 1)
             values = call_args[0][0][1]
@@ -52,7 +52,7 @@ class TestBudget(unittest.TestCase):
 
     def test_retire(self):
         self.bot.configure_mock(**{
-            'mysql_connect.return_value': Mock(**{
+            'pgsql_connect.return_value': Mock(**{
                 'cursor.return_value': Mock(**{
                     'fetchone.return_value': [1] # Nombre d'objets trouvés
                 })
@@ -65,13 +65,13 @@ class TestBudget(unittest.TestCase):
         for args in all_args:
             self.bot.reset_mock()
             self.budget(self.serv, self.author, args)
-            execute = self.bot.mysql_connect().cursor().execute
+            execute = self.bot.pgsql_connect().cursor().execute
             values = execute.call_args[0][1]
             self.assertEqual(values[0], 10.0)
             self.assertEqual(values[1], "%" + args[3] + "%")
             self.bot.ans.assert_called_once_with(self.serv, self.author, "Facture retirée.")
         self.bot.configure_mock(**{
-            'mysql_connect.return_value': Mock(**{
+            'pgsql_connect.return_value': Mock(**{
                 'cursor.return_value': Mock(**{
                     'fetchone.return_value': [2] # Nombre d'objets trouvés
                 })

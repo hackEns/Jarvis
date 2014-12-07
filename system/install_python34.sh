@@ -18,7 +18,7 @@ apt-get update
 apt-get -t jessie --yes install python3 gcc python3-pip python3-dev
 
 # Python modules
-pip3 install requests irc wiringpi2 mysql-connector-python RPi.GPIO pyserial numpy flake8
+pip3 install requests irc wiringpi2 psycopg2 RPi.GPIO pyserial numpy flake8
 
 # Remove unused packets
 apt-get --yes autoremove --purge

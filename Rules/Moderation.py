@@ -24,7 +24,7 @@ class Moderation(Rule):
             values = ()
             message = "Messages en attente de modération :"
         try:
-            bdd = self.bot.mysql_connect(serv)
+            bdd = self.bot.pgsql_connect(serv)
             assert(bdd is not None)
         except AssertionError:
             return
@@ -41,7 +41,6 @@ class Moderation(Rule):
             self.bot.say(serv, "[" + liste + "] : « " + subject + " » par " +
                          author)
         bdd_cursor.close()
-        bdd.close()
 
     def close(self):
         pass

@@ -8,7 +8,7 @@ import datetime
 from email.mime.text import MIMEText
 import irc.bot as ircbot
 import irc.connection
-import mysql.connector
+import psycopg2
 import os
 import random
 import re
@@ -155,19 +155,24 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.rules[name]['action'] = action
         self.rules[name]['help'] = help_msg
 
-    def mysql_connect(self, serv):
-        try:
-            bdd = mysql.connector.connect(**config.get("mysql"))
-            return bdd
-        except mysql.connector.Error as err:
-            if config.get("debug"):
-                print(datetime.datetime.now().timestamp())
-                tools.warning("Debug : " + str(err))
-            if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
-                serv.say("Accès refusé à la BDD.")
-            elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
-                serv.say("La base MySQL n'existe pas.")
-            return None
+    bdd = None
+    def pgsql_connect(self, serv):
+        if self.bdd is None:
+            try:
+                self.bdd = psycopg2.connector.connect(**config.get("pgsql"))
+                self.bdd.set_isolation_level(0)  # Set autocommit
+            except psycopg2.Error as err:
+                if config.get("debug"):
+                    print(datetime.datetime.now().timestamp())
+                    tools.warning("Debug : " + str(err))
+                if err.errno == psycopg2.errorcode.ER_ACCESS_DENIED_ERROR:
+                    serv.say("Accès refusé à la BDD.")
+                elif err.errno == psycopg2.errorcode.ER_BAD_DB_ERROR:
+                    serv.say("La base PostgreSQL n'existe pas.")
+                return None
+        elif not self.bdd.is_connected():
+            self.bdd.reconnect()
+        return self.bdd
 
     def on_welcome(self, serv, ev):
         """Upon server connection, handles nickserv"""
@@ -344,7 +349,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         query = ("UPDATE borrowings SET back=1 WHERE tool=%s AND borrower=%s")
         values = (args[1], borrower)
         try:
-            bdd = self.mysql_connect(serv)
+            bdd = self.pgsql_connect(serv)
             assert(bdd is not None)
         except AssertionError:
             return
@@ -357,14 +362,13 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.ans(serv, author,
                      "Emprunt introuvable.")
         bdd_cursor.close()
-        bdd.close()
 
     def retour_priv(self, serv, author, id):
         """Handles end of borrowings with private answers to notifications"""
         query = ("UPDATE borrowings SET back=1 WHERE id=%s")
         values = (id,)
         try:
-            bdd = self.mysql_connect(serv)
+            bdd = self.pgsql_connect(serv)
             assert(bdd is not None)
         except AssertionError:
             return
@@ -377,7 +381,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             serv.privmsg(author,
                          "Emprunt introuvable.")
         bdd_cursor.close()
-        bdd.close()
 
     def notifs_emprunts(self, serv):
         """Notifications when borrowing is over"""
@@ -387,7 +390,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                  "FROM borrowings WHERE ((until <= %s AND " +
                  "until - date_from <= %s) " + "OR until <= %s) AND back=0")
         try:
-            bdd = self.mysql_connect(serv)
+            bdd = self.pgsql_connect(serv)
             assert(bdd is not None)
         except AssertionError:
             return
@@ -420,7 +423,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                              "Pour confirmer le retour, répond-moi " +
                              "\"oui " + id_field + "\" en query.")
         bdd_cursor.close()
-        bdd.close()
 
     def close(self):
         """Exits nicely"""

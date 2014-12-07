@@ -54,13 +54,11 @@ class Config():
         self.set("password", "")
         # Author of this bot, shown in version
         self.set("author", "hackEns")
-        # MySQL params
-        self.set("mysql", {"user": "",
+        # pgsql params
+        self.set("pgsql", {"user": "",
                            "password": "",
                            "host": "",
-                           "database": "",
-                           "raise_on_warnings": True,
-                           "autocommit": True})
+                           "database": ""})
         # Shaarli params
         self.set("shaarli_url", "")
         self.set("shaarli_token", "")

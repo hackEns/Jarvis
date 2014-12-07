@@ -60,7 +60,7 @@ class Emprunt(Rule):
                  "VALUES (%s, %s, %s, %s, %s)")
         values = (borrower, tool, datetime.datetime.now(), until, 0)
         try:
-            bdd = self.bot.mysql_connect(serv)
+            bdd = self.bot.pgsql_connect(serv)
             assert(bdd is not None)
         except AssertionError:
             return
@@ -80,7 +80,6 @@ class Emprunt(Rule):
             values = (until, borrower, tool)
         bdd_cursor.execute(query, values)
         bdd_cursor.close()
-        bdd.close()
 
         self.bot.ans(serv, author,
                      "Emprunt de " + tool + " jusqu'au " +

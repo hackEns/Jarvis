@@ -15,7 +15,7 @@ class Courses(Rule):
                 query = \
                     "SELECT item, author, date FROM shopping WHERE bought=0"
                 try:
-                    bdd = self.bot.mysql_connect(serv)
+                    bdd = self.bot.pgsql_connect(serv)
                     assert(bdd is not None)
                 except AssertionError:
                     return
@@ -42,7 +42,7 @@ class Courses(Rule):
                      "comment LIKE %s")
             values = (args[2], '%' + comment + '%')
             try:
-                bdd = self.bot.mysql_connect(serv)
+                bdd = self.bot.pgsql_connect(serv)
                 assert(bdd is not None)
             except AssertionError:
                 return
@@ -60,14 +60,13 @@ class Courses(Rule):
             bdd_cursor.execute(query, values)
             self.bot.ans(serv, author, "Item ajouté à la liste de courses.")
             bdd_cursor.close()
-            bdd.close()
 
         elif args[1] == "annuler":
             query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
                      "comment LIKE %s")
             values = (args[2], '%' + comment + '%')
             try:
-                bdd = self.bot.mysql_connect(serv)
+                bdd = self.bot.pgsql_connect(serv)
                 assert(bdd is not None)
             except AssertionError:
                 return
@@ -84,14 +83,13 @@ class Courses(Rule):
             bdd_cursor.execute(query, values)
             self.bot.ans(serv, author, "Item supprimé de la liste de courses.")
             bdd_cursor.close()
-            bdd.close()
 
         elif args[1] == "acheté":
             query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
                      "comment LIKE %s AND bought=0")
             values = (args[2], '%' + comment + '%')
             try:
-                bdd = self.bot.mysql_connect(serv)
+                bdd = self.bot.pgsql_connect(serv)
                 assert(bdd is not None)
             except AssertionError:
                 return
@@ -108,7 +106,6 @@ class Courses(Rule):
             bdd_cursor.execute(query, values)
             self.bot.ans(serv, author, "Item marqué comme acheté.")
             bdd_cursor.close()
-            bdd.close()
 
         else:
             raise InvalidArgs

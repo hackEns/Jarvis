@@ -22,7 +22,7 @@ then
   done
 
   # Mise en place du tunnel ssh
-  autossh -NfL 3306:localhost:3306 hackens@hackens.org
+  autossh -NfL 5432:localhost:5432 hackens@hackens.org
 
   # On lance jarvis dans un screen
   screen -dmS jarvis
