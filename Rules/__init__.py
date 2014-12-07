@@ -18,6 +18,7 @@ from .Tchou_Tchou import Tchou_Tchou
 from .Update import Update
 from .Version import Version
 from .Ping import Ping
+from .Retour import Retour
 
 __all__ = [
     "InvalidArgs",
@@ -40,4 +41,5 @@ __all__ = [
     "Update",
     "Version",
     "Ping",
+    "Retour",
 ]

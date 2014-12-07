@@ -14,7 +14,7 @@ apt-get --yes install postgresql-client libpq-dev supervisor
 apt-get --yes autoremove --purge
 
 # Clear APT cache
-#apt-get clean
+apt-get clean
 
 rm -rf /opt/vc /home/pi/Desktop /home/pi/python_games /home/pi/ocr_pi.png
 

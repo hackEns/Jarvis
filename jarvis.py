@@ -29,10 +29,12 @@ config = Config()
 
 
 def printerr(msg):
-  sys.stderr.write(msg + "\n")
-  sys.stderr.flush()
+    sys.stderr.write(msg + "\n")
+    sys.stderr.flush()
+
+
 def nothing(msg):
-  pass
+    pass
 debug = printerr if config.get("debug") else nothing
 
 
@@ -41,6 +43,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def __init__(self):
         debug("Initialization...")
+        self.bdd = None
         if not config.get("use_ssl"):
             ircbot.SingleServerIRCBot.__init__(self, [(config.get("server"),
                                                        config.get("port"))],
@@ -76,6 +79,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.update = Update(self, config)
         self.version = Version(self, config)
         self.ping = Ping(self)
+        self.retour = Retour(self)
 
         self.rules = {}
         self.add_rule("aide",
@@ -155,7 +159,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.rules[name]['action'] = action
         self.rules[name]['help'] = help_msg
 
-    bdd = None
     def pgsql_connect(self, serv):
         if self.bdd is None:
             try:
@@ -206,7 +209,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         """Handles the messages on the chan"""
         author = ev.source.nick
         raw_msg = ev.arguments[0]
-        self.log.add_cache(author, raw_msg) # Log each line
+        self.log.add_cache(author, raw_msg)  # Log each line
         msg = raw_msg.strip()
         http_re = r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]" +\
                   r"|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
@@ -266,7 +269,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def say(self, serv, message):
         """Say something on the channel"""
-        self.log.add_cache(config.get("nick"), message) # Log each line
+        self.log.add_cache(config.get("nick"), message)  # Log each line
         serv.privmsg(config.get("channel"), message)
 
     def has_admin_rights(self, serv, author):
@@ -332,36 +335,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.ans(serv, author, "Retransmission interrompue.")
         else:
             raise InvalidArgs
-
-    def retour(self, serv, author, args):
-        """Handles end of borrowings"""
-        args = [i.lower() for i in args]
-        if len(args) < 2:
-            raise InvalidArgs
-        if len(args) > 2:
-            if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
-                        args[2]) is not None:
-                borrower = args[2]
-            else:
-                raise InvalidArgs
-        else:
-            borrower = author
-        query = ("UPDATE borrowings SET back=1 WHERE tool=%s AND borrower=%s")
-        values = (args[1], borrower)
-        try:
-            bdd = self.pgsql_connect(serv)
-            assert(bdd is not None)
-        except AssertionError:
-            return
-        bdd_cursor = bdd.cursor()
-        bdd_cursor.execute(query, values)
-        if bdd_cursor.rowcount > 0:
-            self.ans(serv, author,
-                     "Retour de " + args[1] + " enregistré.")
-        else:
-            self.ans(serv, author,
-                     "Emprunt introuvable.")
-        bdd_cursor.close()
 
     def retour_priv(self, serv, author, id):
         """Handles end of borrowings with private answers to notifications"""
@@ -454,8 +427,8 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         return not config.get("debug")
 
 if __name__ == '__main__':
-  try:
-      with JarvisBot() as bot:
-          bot.start()
-  except KeyboardInterrupt:
-      pass
+    try:
+        with JarvisBot() as bot:
+            bot.start()
+    except KeyboardInterrupt:
+        pass
