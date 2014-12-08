@@ -1,5 +1,7 @@
 import datetime
+from email.mime.text import MIMEText
 import re
+import smtplib
 from ._shared import *
 
 
@@ -14,6 +16,48 @@ class Emprunt(Rule):
             return "0" + str(number)
         else:
             return str(number)
+
+    def notifs(self, serv):
+        """Notifications when borrowing is over"""
+        now = datetime.datetime.now()
+        delta = datetime.timedelta(hours=2)
+        query = ("SELECT id, borrower, tool, date_from, until " +
+                 "FROM borrowings WHERE until <= %s AND back=false")
+        try:
+            bdd = self.bot.pgsql_connect(serv)
+            assert(bdd is not None)
+        except AssertionError:
+            return
+        bdd_cursor = bdd.cursor()
+        bdd_cursor.execute(query,
+                           (now + delta,))
+        for (id_field, borrower, tool, from_field, until) in bdd_cursor:
+            notif = ("Tu as emprunté " + tool + " depuis le " +
+                     from_field.strftime("%d/%m/%Y") +
+                     " et tu devais le " +
+                     "rendre aujourd'hui. L'as-tu rendu ?")
+            if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
+                        borrower) is not None:
+                notif = "Salut,\n\n" + notif
+                notif += ("\n\nPour confirmer le retour, répond à cet e-mail" +
+                          " ou connecte-toi sur IRC (#hackens) pour" +
+                          " le confirmer directement à Jarvis.")
+                msg = MIMEText(notif)
+                msg["Subject"] = "Emprunt en hack'ave"
+                msg["From"] = config.get("emails_sender")
+                msg["to"] = borrower
+
+                s = smtplib.SMTP('localhost')
+                s.sendmail(config.get("emails_sender"),
+                           [borrower],
+                           msg.as_string())
+            else:
+                self.bot.privmsg(serv, borrower, notif)
+                self.bot.privmsg(serv,
+                                 borrower,
+                                 "Pour confirmer le retour, répond-moi " +
+                                 "\"oui " + str(id_field) + "\" en query.")
+        bdd_cursor.close()
 
     def __call__(self, serv, author, args):
         """Handles tools borrowings"""

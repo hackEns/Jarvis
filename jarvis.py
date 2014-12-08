@@ -5,7 +5,6 @@ This is the code for the jarvis bot on IRC.
 """
 
 import datetime
-from email.mime.text import MIMEText
 import irc.bot as ircbot
 import irc.connection
 import psycopg2
@@ -13,11 +12,9 @@ import os
 import random
 import re
 import shlex
-import smtplib
 import ssl
 import subprocess
 import sys
-import time
 
 from irc.client import Throttler
 
@@ -196,8 +193,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
         self.connection.execute_delayed(random.randrange(3600, 84600),
                                         self.tchou_tchou, (serv,))
-        self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
-        self.notifs_emprunts(serv)  # TODO
+        self.connection.execute_every(3600, self.emprunt.notifs, (serv,))
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
@@ -206,7 +202,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.nickserved = True
         elif(ev.arguments[0].strip().startswith("oui")):
             id = ev.arguments[0].replace("oui", "").strip()
-            self.retour_priv(serv, ev.source.nick, id)
+            self.retour.query_retour(serv, ev.source.nick, id)
         elif(config.get("authorized_queries") == [] or
              (config.get("authorized_queries") is not None and
               ev.source.nick in config.get("authorized_queries"))):
@@ -346,69 +342,6 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             self.ans(serv, author, "Retransmission interrompue.")
         else:
             raise InvalidArgs
-
-    def retour_priv(self, serv, author, id):
-        """Handles end of borrowings with private answers to notifications"""
-        query = ("UPDATE borrowings SET back=true WHERE id=%s")
-        values = (id,)
-        try:
-            bdd = self.pgsql_connect(serv)
-            assert(bdd is not None)
-        except AssertionError:
-            return
-        bdd_cursor = bdd.cursor()
-        bdd_cursor.execute(query, values)
-        if bdd_cursor.rowcount > 0:
-            self.privmsg(serv,
-                         author,
-                         "Retour de " + id + " enregistré.")
-        else:
-            self.privmsg(serv,
-                         author,
-                         "Emprunt introuvable.")
-        bdd_cursor.close()
-
-    def notifs_emprunts(self, serv):
-        """Notifications when borrowing is over"""
-        now = datetime.datetime.now()
-        delta = datetime.timedelta(hours=2)
-        query = ("SELECT id, borrower, tool, date_from, until " +
-                 "FROM borrowings WHERE until <= %s AND back=false")
-        try:
-            bdd = self.pgsql_connect(serv)
-            assert(bdd is not None)
-        except AssertionError:
-            return
-        bdd_cursor = bdd.cursor()
-        bdd_cursor.execute(query,
-                           (now + delta,))
-        for (id_field, borrower, tool, from_field, until) in bdd_cursor:
-            notif = ("Tu as emprunté " + tool + " depuis le " +
-                     from_field.strftime("%d/%m/%Y") +
-                     " et tu devais le " +
-                     "rendre aujourd'hui. L'as-tu rendu ?")
-            if re.match("^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$",
-                        borrower) is not None:
-                notif = "Salut,\n\n" + notif
-                notif += ("\n\nPour confirmer le retour, répond à cet e-mail" +
-                          " ou connecte-toi sur IRC (#hackens) pour" +
-                          " le confirmer directement à Jarvis.")
-                msg = MIMEText(notif)
-                msg["Subject"] = "Emprunt en hack'ave"
-                msg["From"] = config.get("emails_sender")
-                msg["to"] = borrower
-
-                s = smtplib.SMTP('localhost')
-                s.sendmail(config.get("emails_sender"),
-                           [borrower],
-                           msg.as_string())
-            else:
-                self.privmsg(serv, borrower, notif)
-                self.privmsg(serv,
-                             borrower,
-                             "Pour confirmer le retour, répond-moi " +
-                             "\"oui " + str(id_field) + "\" en query.")
-        bdd_cursor.close()
 
     def close(self):
         """Exits nicely"""
