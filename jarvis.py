@@ -17,6 +17,7 @@ import smtplib
 import ssl
 import subprocess
 import sys
+import time
 
 from irc.client import Throttler
 
@@ -151,6 +152,11 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         debug("Initialized.")
         debug("Connection to %s:%d as %s..." % (config.get("server"), config.get("port"), config.get("nick")))
 
+        # Throttle messages
+        self.say = Throttler(self.say_no_throttle, max_rate=2)
+        self.ans = Throttler(self.ans_no_throttle, max_rate=2)
+        self.privmsg = Throttler(self.privmsg_no_throttle, max_rate=2)
+
     def add_rule(self, name, action, help_msg=""):
         name = name.lower()
         debug("Adding rule `%s`" % (name,))
@@ -180,7 +186,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def on_welcome(self, serv, ev):
         """Upon server connection, handles nickserv"""
         debug("Connected.")
-        serv.privmsg("nickserv", "identify " + config.get("password"))
+        self.privmsg(serv, "nickserv", "identify " + config.get("password"))
 
         debug("Joining %s..." % (config.get("channel"),))
         serv.join(config.get("channel"))
@@ -263,14 +269,18 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                         tools.warning("Debug : " + str(msg))
                     self.aide(serv, author, msg)
 
-    def ans(self, serv, user, message):
+    def ans_no_throttle(self, serv, user, message):
         """Answers to specified user"""
         self.say(serv, user + ": " + message)
 
-    def say(self, serv, message):
+    def say_no_throttle(self, serv, message):
         """Say something on the channel"""
         self.log.add_cache(config.get("nick"), message)  # Log each line
         serv.privmsg(config.get("channel"), message)
+
+    def privmsg_no_throttle(self, serv, nick, message):
+        """Handle privmsg to users for throttling"""
+        serv.privmsg(nick, message)
 
     def has_admin_rights(self, serv, author):
         """Checks that author is in admin users"""
@@ -348,10 +358,12 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         bdd_cursor = bdd.cursor()
         bdd_cursor.execute(query, values)
         if bdd_cursor.rowcount > 0:
-            serv.privmsg(author,
+            self.privmsg(serv,
+                         author,
                          "Retour de " + id + " enregistré.")
         else:
-            serv.privmsg(author,
+            self.privmsg(serv,
+                         author,
                          "Emprunt introuvable.")
         bdd_cursor.close()
 
@@ -391,8 +403,9 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                            [borrower],
                            msg.as_string())
             else:
-                serv.privmsg(borrower, notif)
-                serv.privmsg(borrower,
+                self.privmsg(serv, borrower, notif)
+                self.privmsg(serv,
+                             borrower,
                              "Pour confirmer le retour, répond-moi " +
                              "\"oui " + id_field + "\" en query.")
         bdd_cursor.close()

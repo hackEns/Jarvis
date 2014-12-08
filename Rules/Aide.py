@@ -13,16 +13,17 @@ class Aide(Rule):
         args = [i.lower() for i in args]
         # args[0] est toujours 'aide' (à priori)
         # args[1] est la commande pour laquelle on veut l'aide, ou vide
-        serv.privmsg(author,
-                     self.config.get("desc") + " Commandes disponibles :")
+        self.bot.privmsg(serv,
+                         author,
+                         self.config.get("desc") + " Commandes disponibles :")
         if len(args) > 1:
             if args[1] in self.bot.rules:
-                serv.privmsg(author, self.bot.rules[args[1]]['help'])
+                self.bot.privmsg(serv, author, self.bot.rules[args[1]]['help'])
             else:
-                serv.privmsg(author, "Je n'ai pas compris…")
+                self.bot.privmsg(serv, author, "Je n'ai pas compris…")
         else:
             for rule in sorted(self.bot.rules):
-                serv.privmsg(author, self.bot.rules[rule]['help'])
+                self.bot.privmsg(serv, author, self.bot.rules[rule]['help'])
 
     def close(self):
         pass
