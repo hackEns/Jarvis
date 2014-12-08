@@ -2,7 +2,7 @@ import re
 from ._shared import *
 
 
-class Emprunt(Rule):
+class Retour(Rule):
     """Handles tools borrowings"""
 
     def __init__(self, bot):
@@ -21,7 +21,7 @@ class Emprunt(Rule):
                 raise InvalidArgs
         else:
             borrower = author
-        query = ("UPDATE borrowings SET back=1 WHERE tool=%s AND borrower=%s")
+        query = ("UPDATE borrowings SET back=true WHERE tool=%s AND borrower=%s")
         values = (args[1], borrower)
         try:
             bdd = self.bot.pgsql_connect(serv)

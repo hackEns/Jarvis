@@ -16,7 +16,4 @@ else
     echo "Erreur durant la mise à jour"
 fi
 
-echo "Lancement de jarvis"
-screen -x jarvis -p 0 -X stuff $1"/jarvis.py$(printf \\r)"
-
 exit 0

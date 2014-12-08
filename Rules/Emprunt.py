@@ -56,9 +56,9 @@ class Emprunt(Rule):
             year = this_year
         until = datetime.datetime(year, month, day, hour)
         query = ("INSERT INTO borrowings" +
-                 "(borrower, tool, `date_from`, until, back)" +
-                 "VALUES (%s, %s, %s, %s, %s)")
-        values = (borrower, tool, datetime.datetime.now(), until, 0)
+                 "(borrower, tool, date_from, until, back)" +
+                 "VALUES (%s, %s, %s, %s, false)")
+        values = (borrower, tool, datetime.datetime.now(), until)
         try:
             bdd = self.bot.pgsql_connect(serv)
             assert(bdd is not None)
@@ -66,7 +66,7 @@ class Emprunt(Rule):
             return
         bdd_cursor = bdd.cursor()
         bdd_cursor.execute("SELECT COUNT(id) FROM borrowings " +
-                           "WHERE back=0 AND borrower=%s AND tool=%s",
+                           "WHERE back=false AND borrower=%s AND tool=%s",
                            (borrower, tool))
         row = bdd_cursor.fetchone()
         if row[0] > 0:
@@ -74,9 +74,9 @@ class Emprunt(Rule):
                          author,
                          "Il y a déjà un emprunt en cours, mise à jour.")
             query = ("UPDATE borrowings" +
-                     "(id, borrower, tool, `date_from`, until, back)" +
+                     "(id, borrower, tool, date_from, until, back)" +
                      "SET until=%s " +
-                     "WHERE back=0 AND borrower=%s AND tool=%s")
+                     "WHERE back=false AND borrower=%s AND tool=%s")
             values = (until, borrower, tool)
         bdd_cursor.execute(query, values)
         bdd_cursor.close()

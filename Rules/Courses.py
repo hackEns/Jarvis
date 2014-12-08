@@ -13,7 +13,7 @@ class Courses(Rule):
         if len(args) < 3:
             if len(args) == 1:
                 query = \
-                    "SELECT item, author, date FROM shopping WHERE bought=0"
+                    "SELECT item, author, date FROM shopping WHERE bought=false"
                 try:
                     bdd = self.bot.pgsql_connect(serv)
                     assert(bdd is not None)
@@ -55,7 +55,7 @@ class Courses(Rule):
                              "Item déjà présent dans la liste de courses")
                 return
             query = ("INSERT INTO shopping(item, author, comment, date, " +
-                     "bought) VALUES(%s, %s, %s, %s, 0)")
+                     "bought) VALUES(%s, %s, %s, %s, false)")
             values = (args[2], author, comment, datetime.datetime.now())
             bdd_cursor.execute(query, values)
             self.bot.ans(serv, author, "Item ajouté à la liste de courses.")
@@ -86,7 +86,7 @@ class Courses(Rule):
 
         elif args[1] == "acheté":
             query = ("SELECT COUNT(*) as nb FROM shopping WHERE item=%s AND " +
-                     "comment LIKE %s AND bought=0")
+                     "comment LIKE %s AND bought=false")
             values = (args[2], '%' + comment + '%')
             try:
                 bdd = self.bot.pgsql_connect(serv)
@@ -101,8 +101,8 @@ class Courses(Rule):
                              "Requêtes trop ambiguë. Plusieurs entrées " +
                              "correspondent.")
                 return
-            query = ("UPDATE shopping SET bought=1 WHERE item=%s AND " +
-                     "comment LIKE %s AND bought=0")
+            query = ("UPDATE shopping SET bought=true WHERE item=%s AND " +
+                     "comment LIKE %s AND bought=false")
             bdd_cursor.execute(query, values)
             self.bot.ans(serv, author, "Item marqué comme acheté.")
             bdd_cursor.close()

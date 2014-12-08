@@ -162,7 +162,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
     def pgsql_connect(self, serv):
         if self.bdd is None:
             try:
-                self.bdd = psycopg2.connector.connect(**config.get("pgsql"))
+                self.bdd = psycopg2.connect(**config.get("pgsql"))
                 self.bdd.set_isolation_level(0)  # Set autocommit
             except psycopg2.Error as err:
                 if config.get("debug"):
@@ -173,7 +173,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 elif err.errno == psycopg2.errorcode.ER_BAD_DB_ERROR:
                     serv.say("La base PostgreSQL n'existe pas.")
                 return None
-        elif not self.bdd.is_connected():
+        elif self.bdd.closed > 0:
             self.bdd.reconnect()
         return self.bdd
 

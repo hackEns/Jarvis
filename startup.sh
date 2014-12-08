@@ -28,10 +28,6 @@ then
   screen -dmS jarvis
   # Jarvis lui-même
   screen -S jarvis -p 0 -X stuff "~/Jarvis/jarvis.py$(printf \\r)"
-
-  # Les logs de Jarvis
-  screen -S jarvis -X screen
-  screen -S jarvis -p 1 -X stuff "~/Jarvis/irclog/irclog.py ~/Jarvis/data/jarvis.all.log$(printf \\r)"
 else
   su jarvis -c "$0"
 fi
