@@ -197,6 +197,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.connection.execute_delayed(random.randrange(3600, 84600),
                                         self.tchou_tchou, (serv,))
         self.connection.execute_every(3600, self.notifs_emprunts, (serv,))
+        self.notifs_emprunts(serv)  # TODO
 
     def on_privmsg(self, serv, ev):
         """Handles queries"""
@@ -348,7 +349,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
 
     def retour_priv(self, serv, author, id):
         """Handles end of borrowings with private answers to notifications"""
-        query = ("UPDATE borrowings SET back=1 WHERE id=%s")
+        query = ("UPDATE borrowings SET back=true WHERE id=%s")
         values = (id,)
         try:
             bdd = self.pgsql_connect(serv)
@@ -372,8 +373,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         now = datetime.datetime.now()
         delta = datetime.timedelta(hours=2)
         query = ("SELECT id, borrower, tool, date_from, until " +
-                 "FROM borrowings WHERE ((until <= %s AND " +
-                 "until - date_from <= %s) " + "OR until <= %s) AND back=0")
+                 "FROM borrowings WHERE until <= %s AND back=false")
         try:
             bdd = self.pgsql_connect(serv)
             assert(bdd is not None)
@@ -381,7 +381,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
             return
         bdd_cursor = bdd.cursor()
         bdd_cursor.execute(query,
-                           (now + delta, delta, now))
+                           (now + delta,))
         for (id_field, borrower, tool, from_field, until) in bdd_cursor:
             notif = ("Tu as emprunté " + tool + " depuis le " +
                      from_field.strftime("%d/%m/%Y") +
@@ -407,7 +407,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
                 self.privmsg(serv,
                              borrower,
                              "Pour confirmer le retour, répond-moi " +
-                             "\"oui " + id_field + "\" en query.")
+                             "\"oui " + str(id_field) + "\" en query.")
         bdd_cursor.close()
 
     def close(self):
