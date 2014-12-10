@@ -14,6 +14,7 @@ class Update(Rule):
     def __call__(self, serv, author, args):
         """Handles bot updating"""
         if self.bot.has_admin_rights(serv, author):
+            self.bot.ans(serv, author, "Starting update…")
             subprocess.call([self.bot.basepath + "updater.sh",
 			    self.bot.basepath])
             self.bot.ans(serv, author, "I will now update myself.")
