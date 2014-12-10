@@ -8,8 +8,9 @@ from ._shared import *
 class Emprunt(Rule):
     """Handles tools borrowings"""
 
-    def __init__(self, bot):
+    def __init__(self, bot, config):
         self.bot = bot
+        self.config = config
 
     def padding(self, number):
         if number < 10:
@@ -44,11 +45,11 @@ class Emprunt(Rule):
                           " le confirmer directement à Jarvis.")
                 msg = MIMEText(notif)
                 msg["Subject"] = "Emprunt en hack'ave"
-                msg["From"] = config.get("emails_sender")
+                msg["From"] = self.config.get("emails_sender")
                 msg["to"] = borrower
 
                 s = smtplib.SMTP('localhost')
-                s.sendmail(config.get("emails_sender"),
+                s.sendmail(self.config.get("emails_sender"),
                            [borrower],
                            msg.as_string())
             else:

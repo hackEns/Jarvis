@@ -66,7 +66,7 @@ class JarvisBot(ircbot.SingleServerIRCBot):
         self.courses = Courses(self)
         self.dis = Dis(self)
         self.disclaimer = Disclaimer(self)
-        self.emprunt = Emprunt(self)
+        self.emprunt = Emprunt(self, config)
         self.historique = Historique(self, config, self.basepath)
         self.info = Info(self)
         self.jeu = Jeu(self)
