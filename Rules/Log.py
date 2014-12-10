@@ -94,7 +94,7 @@ class Log(Rule):
 
     def __call__(self, serv, author, args):
         """Handles logging"""
-        if len(args) != 4 or re.match('\\.\\.+', args[2]) is None:
+        if len(args) < 4 or re.match('\\.\\.+', args[2]) is None:
             raise InvalidArgs
 
         tmp = []
@@ -128,17 +128,35 @@ class Log(Rule):
 
 
         if found:
-            # Save to file
-            with open(self.config.get("log_file"), 'a') as f:
-                f.write("---\n")
+            for i in range(len(tmp)):
+                data = tmp.pop()
+                quote.push(data)
+                if end in data[3]: # Stop at first occurrence of end sentence
+                    break
 
-                for i in range(len(tmp)):
-                    data = tmp.pop()
-                    print(data)
-                    f.write("%d:%d <%s> %s\n" % data)
+            # Write quote body
+            body = ""
+            for line in quote:
+                body += "%d:%d <%s> %s\n" % line
 
-                    if end in msg: # Stop at first occurrence of end sentence
-                        break
+            tags = [a[1:] for a in args[4:] if a[0] == "#"]
+            tags.append("Logs")
+            loglist = " ".join(tags)
+
+            # Save to Shaarli
+            base_params = (("do", "api"),
+                           ("token", self.config.get("shaarli_token")))
+            post = {"url": "",
+                    "description": body,
+                    "private": 1,
+                    "tags": loglist}
+            r = requests.post(self.config.get("shaarli_url"),
+                              params=base_params, data=post)
+            if r.status_code != 200 and r.status_code != 201:
+                self.bot.ans(serv, author,
+                             "Impossible d'ajouter le log à shaarli. " +
+                             "Status code : " + str(r.status_code))
+
 
             self.bot.ans(serv, author, "Loggé !")
         else:
