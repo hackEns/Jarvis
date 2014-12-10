@@ -50,7 +50,7 @@ class Emprunt(Rule):
                 s = smtplib.SMTP('localhost')
                 s.sendmail(config.get("emails_sender"),
                            [borrower],
-                           msg.as_string())
+                           msg.as_bytes())
             else:
                 self.bot.privmsg(serv, borrower, notif)
                 self.bot.privmsg(serv,
