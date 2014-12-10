@@ -1,6 +1,7 @@
 from collections import deque  # Fifo for log cache
 from datetime import datetime
 import re
+import requests
 
 from ._shared import *
 
@@ -128,9 +129,10 @@ class Log(Rule):
 
 
         if found:
+            quote = []
             for i in range(len(tmp)):
                 data = tmp.pop()
-                quote.push(data)
+                quote.append(data)
                 if end in data[3]: # Stop at first occurrence of end sentence
                     break
 
@@ -146,7 +148,7 @@ class Log(Rule):
             # Save to Shaarli
             base_params = (("do", "api"),
                            ("token", self.config.get("shaarli_token")))
-            post = {"url": "",
+            post = {"url": "http://hackens.org/irc/",
                     "description": body,
                     "private": 1,
                     "tags": loglist}
