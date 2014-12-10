@@ -1,8 +1,34 @@
 from collections import deque  # Fifo for log cache
 from datetime import datetime
-from re import match
+import re
 
 from ._shared import *
+
+
+class LogIterator:
+    def __init__(self, logfilename, cache=[]):
+        self.cache = iter(cache)
+        self.logline_parser = re.compile(r'^(?P<day>\d*)/(?P<month>\d*)/(?P<year>\d*) (?P<hour>\d*):(?P<minute>\d*) <(?P<author>.+?)> (?P<message>.*)$')
+        logfile = []
+        with open(logfilename, 'r') as f:
+            for l in f.readlines()[::-1]:
+                m = self.logline_parser.match(l)
+                if m is not None:
+                    d = m.groupdict()
+                    logfile.append((int(d['day']), int(d['month']), int(d['year']), int(d['hour']), int(d['minute']), d['author'], d['message']))
+        self.logfile = iter(logfile)
+                
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            return next(self.cache)
+        except StopIteration:
+            return next(self.logfile)
+                
+
 
 
 class Log(Rule):
@@ -56,12 +82,19 @@ class Log(Rule):
 
     def load_logfile(self, logfile):
         """Load cache object from file"""
-        # TODO
-        return []
+        messages = []
+        line_parser = re.compile(r'^(?P<day>\d*)/(?P<month>\d*)/(?P<year>\d*) (?P<hour>\d*):(?P<minute>\d*) <(?P<author>.+?)> (?P<message>.*)$')
+        with open(logfile, 'r') as f:
+            for line in f:
+                m = line_parser.match(line)
+                if m is not None:
+                    d = m.groupdict()
+                    messages.append((int(d['day']), int(d['month']), int(d['year']), int(d['hour']), int(d['minute']), d['author'], d['message']))
+        return messages
 
     def __call__(self, serv, author, args):
         """Handles logging"""
-        if len(args) != 4 or match('\.\.+', args[2]):
+        if len(args) != 4 or re.match('\\.\\.+', args[2]) is None:
             raise InvalidArgs
 
         tmp = []
@@ -70,39 +103,29 @@ class Log(Rule):
         found_end = False
         found = False
 
-        step == 0 # Search step (where to look for logs, i.e. first in cache and then in logfile)
+        messages = LogIterator(self.config.get("log_all_file"), self.log_cache)
 
-        while not found:
-
-            if step == 0:
-                messages = self.log_cache
-            elif step == 1:
-                messages = self.load_logfile(self.config.get("log_all_file"))
-            else:
-                break # abort search (no more place to look for)
-
-            for (d, m, y, h, m, auth, msg) in messages:
-                # Ignore messages that ping the bot
-                if msg[:len(self.config.get("nick"))] == self.config.get("nick"):
-                    if found_end:
-                        tmp.append((h, m, auth, msg))
-                    continue
-
-                if not found_end:
-                    # Search end sentence
-                    if end in msg:
-                        found_end = True
-
+        for (d, mth, y, h, m, auth, msg) in messages:
+            # Ignore messages that ping the bot
+            if msg[:len(self.config.get("nick"))] == self.config.get("nick"):
                 if found_end:
-                    # Accumulate messages
                     tmp.append((h, m, auth, msg))
+                continue
 
-                    # Search start sentence
-                    if start in msg:
-                        found = True
-                        break
+            if not found_end:
+                # Search end sentence
+                if end in msg:
+                    found_end = True
 
-            step += 1
+            if found_end:
+                # Accumulate messages
+                tmp.append((h, m, auth, msg))
+
+                # Search start sentence
+                if start in msg:
+                    found = True
+                    break
+
 
         if found:
             # Save to file
@@ -110,8 +133,9 @@ class Log(Rule):
                 f.write("---\n")
 
                 for i in range(len(tmp)):
-                    msg = tmp.pop()
-                    f.write("%d:%d <%s> %s\n" % msg)
+                    data = tmp.pop()
+                    print(data)
+                    f.write("%d:%d <%s> %s\n" % data)
 
                     if end in msg: # Stop at first occurrence of end sentence
                         break
