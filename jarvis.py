@@ -15,6 +15,7 @@ import shlex
 import ssl
 import subprocess
 import sys
+import time
 
 from irc.client import Throttler
 
@@ -23,11 +24,12 @@ from libjarvis.config import Config
 from libjarvis import tools
 
 
+os.chdir(os.path.dirname(sys.argv[0]))  # chdir to own dir
 config = Config()
 
 
 def printerr(msg):
-    sys.stderr.write(msg + "\n")
+    sys.stderr.write("["+str(int(time.time()))+"] " + msg + "\n")
     sys.stderr.flush()
 
 
