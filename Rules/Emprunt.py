@@ -1,5 +1,6 @@
 import datetime
 from email.mime.text import MIMEText
+from email.header import Header
 import re
 import smtplib
 from ._shared import *
@@ -43,15 +44,15 @@ class Emprunt(Rule):
                 notif += ("\n\nPour confirmer le retour, répond à cet e-mail" +
                           " ou connecte-toi sur IRC (#hackens) pour" +
                           " le confirmer directement à Jarvis.")
-                msg = MIMEText(notif)
-                msg["Subject"] = "Emprunt en hack'ave"
+                msg = MIMEText(notif, _charset="utf-8")
+                msg["Subject"] = Header("Emprunt en hack'ave", 'utf-8')
                 msg["From"] = self.config.get("emails_sender")
                 msg["to"] = borrower
 
                 s = smtplib.SMTP('localhost')
                 s.sendmail(self.config.get("emails_sender"),
                            [borrower],
-                           msg.as_bytes())
+                           msg.as_string())
             else:
                 self.bot.privmsg(serv, borrower, notif)
                 self.bot.privmsg(serv,
